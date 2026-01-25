@@ -1,0 +1,103 @@
+# "org" ensures this Service is used with the correct Serverless Framework Access Key.
+org: soumya1998
+# "app" enables Serverless Framework Dashboard features and sharing them with other Services.
+app: serverless-app-main
+# "service" is the name of this project. This will also be added to your AWS resource names.
+service: final-python-thumbnail
+
+provider:
+  name: aws
+  runtime: python3.12
+  region: ap-south-1
+  profile: serverless_admin
+  stage: dev
+  timeout: 10
+  memorySize: 128
+  environment:
+    THUMBNAIL_SIZE: 128
+    REGION_NAME: ${self:provider.region}
+    DYNAMODB_TABLE: ${self:custom.dynamoTable}
+
+  iam:
+    role: 
+      statements:
+        - Effect: "Allow"
+          Resource: '*'
+          Action : 's3:*'
+        - Effect: "Allow"
+          Resource: arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:custom.dynamoTable}
+          Action: 
+            - dynamodb:PutItem
+            - dynamodb:GetItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+            - dynamodb:Scan
+            - dynamodb:Query
+
+            
+
+custom:
+  bucket: soumyadip-bucket-lambda-thumbnail
+  dynamoTable: thumbnail-metadata-table
+  pythonRequirements:
+    dockerizePip: true
+  
+
+
+functions:
+  s3_thumbnail_generator:
+    handler: handler.s3_thumbnail_generator
+    layers:
+      - arn:aws:lambda:ap-south-1:770693421928:layer:Klayers-p312-Pillow:8
+    events:
+      - s3:
+          bucket: ${self:custom.bucket}
+          event: s3:ObjectCreated:*
+          rules:
+            - suffix: .png
+  list:
+    handler: handler.s3_get_thumbnails
+    layers:
+      - arn:aws:lambda:ap-south-1:770693421928:layer:Klayers-p312-Pillow:8
+    events:
+      - http:
+          path: images/all
+          method: get
+          cors: true
+  get:
+    handler: handler.s3_get_thumbnail_by_id
+    layers:
+      - arn:aws:lambda:ap-south-1:770693421928:layer:Klayers-p312-Pillow:8
+    events:
+      - http:
+          path: images/get/{id}
+          method: get
+          cors: true
+  delete:
+    handler: handler.s3_delete_thumbnail_by_id
+    layers:
+      - arn:aws:lambda:ap-south-1:770693421928:layer:Klayers-p312-Pillow:8
+    events:
+      - http:
+          path: images/delete/{id}
+          method: delete
+          cors: true
+
+resources:
+  Resources:
+    ThumbnailMetadataTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.DYNAMODB_TABLE}
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+
+plugins:
+  - serverless-python-requirements

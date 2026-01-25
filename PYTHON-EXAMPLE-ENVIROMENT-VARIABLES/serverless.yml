@@ -1,0 +1,17 @@
+# "org" ensures this Service is used with the correct Serverless Framework Access Key.
+org: soumya1998
+# "app" enables Serverless Framework Dashboard features and sharing them with other Services.
+app: serverless-app-main
+# "service" is the name of this project. This will also be added to your AWS resource names.
+service: PYTHON-EXAMPLE-ENVIROMENT-VARIABLES
+
+provider:
+  name: aws
+  runtime: python3.12
+  environment:
+    FIRST_NAME: "Soumya"
+    LAST_NAME: "Barik"
+
+functions:
+  hello:
+    handler: handler.hello

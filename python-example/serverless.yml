@@ -1,0 +1,24 @@
+# "org" ensures this Service is used with the correct Serverless Framework Access Key.
+org: soumya1998
+# "app" enables Serverless Framework Dashboard features and sharing them with other Services.
+app: serverless-app-main
+# "service" is the name of this project. This will also be added to your AWS resource names.
+service: python-example
+
+provider:
+  name: aws
+  runtime: python3.12
+  # timeout: 3
+  # memorySize: 128
+
+functions:
+  hello-short-timeout:
+    handler: handler.hello
+    timeout: 3
+    memorySize: 128
+    description: "A function with a short timeout and less memory"
+  hello-long-timeout:
+    handler: handler.hello
+    timeout: 6
+    memorySize: 256
+    description: "A function with a longer timeout and more memory"

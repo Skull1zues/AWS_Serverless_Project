@@ -1,0 +1,47 @@
+# Node.js dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Serverless Framework build artifacts
+.serverless/
+.serverless_plugins/
+.serverless-outputs.json
+
+# Environment variables
+.env
+.env.*
+.envrc
+
+# Logs
+logs/
+*.log
+*.tmp
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# IDE/editor files
+.vscode/
+.idea/
+*.swp
+
+# Coverage and test output
+coverage/
+.jest/
+nyc_output/
+
+# Build and dist folders
+dist/
+build/
+
+# AWS SAM / CloudFormation temp files
+.aws-sam/
+cdk.out/
+
+# Python virtualenv (if using Python in Lambdas)
+venv/
+__pycache__/
+*.pyc

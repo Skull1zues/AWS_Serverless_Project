@@ -1,0 +1,86 @@
+
+org: soumya1998
+app: serverless-app-main
+service: AWS-PYTHON-HTTP-API-PROJECT
+
+
+provider:
+  name: aws
+  runtime: python3.12
+  region: ap-south-1
+  profile: serverless_admin
+  stage: dev
+  timeout: 10
+  memorySize: 128
+  environment:
+    DYNAMODB_TABLE: ${self:custom.dynamoTable}
+    REGION_NAME: ${self:provider.region}
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Resource: '*'
+          Action: s3:*
+        - Effect: Allow
+          Resource: arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:custom.dynamoTable}
+          Action:
+            - dynamodb:PutItem
+            - dynamodb:GetItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+            - dynamodb:Scan
+            - dynamodb:Query
+functions:
+  create:
+    handler: handler.create
+    events:
+      - http:
+          path: posts/create
+          method: post
+  get:
+    handler: handler.get
+    events:
+      - http:
+          path: posts/get/{postId}
+          method: get
+  all:
+    handler: handler.all
+    events:
+      - http:
+          path: posts/all
+          method: get
+  update:
+    handler: handler.update
+    events:
+      - http:
+          path: posts/update/{postId}
+          method: put
+  delete:
+    handler: handler.delete
+    events:
+      - http:
+          path: posts/delete/{postId}
+          method: delete
+
+
+
+resources:
+  Resources:
+    ThumbnailMetadataTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.DYNAMODB_TABLE}
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+
+custom:
+  dynamoTable: the-posts
+  pythonRequirements:
+    dockerizePip: true

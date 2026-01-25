@@ -1,0 +1,2708 @@
+{
+  "C:\\Users\\barik\\Downloads\\Serverless-AWS\\final-daily-schdule-mail\\serverless.yml": {
+    "versionFramework": "4.31.0",
+    "servicePath": "C:\\Users\\barik\\Downloads\\Serverless-AWS\\final-daily-schdule-mail\\serverless.yml",
+    "serviceConfigFileName": "serverless.yml",
+    "service": {
+      "org": "soumya1998",
+      "app": "serverless-app-main",
+      "service": "final-daily-schdule-mail",
+      "stages": {
+        "default": {
+          "params": {
+            "tableName": "users-table-dev"
+          }
+        }
+      },
+      "plugins": [
+        "serverless-wsgi",
+        "serverless-python-requirements"
+      ],
+      "custom": {
+        "tableName": "users-table-dev",
+        "wsgi": {
+          "app": "app.app"
+        },
+        "pythonRequirements": {
+          "dockerizePip": true,
+          "slim": true,
+          "zip": true,
+          "layer": true
+        }
+      },
+      "provider": {
+        "name": "aws",
+        "runtime": "python3.12",
+        "region": "ap-south-1",
+        "stage": "dev",
+        "httpApi": {
+          "cors": {
+            "allowedOrigins": [
+              "http://localhost:3000"
+            ],
+            "allowedHeaders": [
+              "Content-Type"
+            ],
+            "allowedMethods": [
+              "GET",
+              "POST",
+              "OPTIONS"
+            ]
+          }
+        },
+        "iam": {
+          "role": {
+            "statements": [
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "SNS:Publish"
+                ],
+                "Resource": {
+                  "Ref": "QuotesMessages"
+                }
+              },
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "s3:*"
+                ],
+                "Resource": "*"
+              },
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "dynamodb:Query",
+                  "dynamodb:Scan",
+                  "dynamodb:GetItem",
+                  "dynamodb:PutItem",
+                  "dynamodb:UpdateItem",
+                  "dynamodb:DeleteItem"
+                ],
+                "Resource": [
+                  {
+                    "Fn::GetAtt": [
+                      "UsersTable",
+                      "Arn"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "environment": {
+          "USERS_TABLE": "users-table-dev",
+          "REGION": "ap-south-1",
+          "SNS_TOPIC_ARN": "arn:aws:sns:ap-south-1:952389988652:quotes-messages-dev"
+        },
+        "versionFunctions": true,
+        "compiledCloudFormationTemplate": {
+          "AWSTemplateFormatVersion": "2010-09-09",
+          "Description": "The AWS CloudFormation template for this Serverless application",
+          "Resources": {
+            "ApiLogGroup": {
+              "Type": "AWS::Logs::LogGroup",
+              "Properties": {
+                "LogGroupName": "/aws/lambda/final-daily-schdule-mail-dev-api"
+              }
+            },
+            "StaticMailerLogGroup": {
+              "Type": "AWS::Logs::LogGroup",
+              "Properties": {
+                "LogGroupName": "/aws/lambda/final-daily-schdule-mail-dev-staticMailer"
+              }
+            },
+            "IamRoleLambdaExecution": {
+              "Type": "AWS::IAM::Role",
+              "Properties": {
+                "AssumeRolePolicyDocument": {
+                  "Version": "2012-10-17",
+                  "Statement": [
+                    {
+                      "Effect": "Allow",
+                      "Principal": {
+                        "Service": [
+                          "lambda.amazonaws.com"
+                        ]
+                      },
+                      "Action": [
+                        "sts:AssumeRole"
+                      ]
+                    }
+                  ]
+                },
+                "Policies": [
+                  {
+                    "PolicyName": {
+                      "Fn::Join": [
+                        "-",
+                        [
+                          "final-daily-schdule-mail",
+                          "dev",
+                          "lambda"
+                        ]
+                      ]
+                    },
+                    "PolicyDocument": {
+                      "Version": "2012-10-17",
+                      "Statement": [
+                        {
+                          "Effect": "Allow",
+                          "Action": [
+                            "logs:CreateLogStream",
+                            "logs:CreateLogGroup",
+                            "logs:TagResource"
+                          ],
+                          "Resource": [
+                            {
+                              "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/final-daily-schdule-mail-dev*:*"
+                            }
+                          ]
+                        },
+                        {
+                          "Effect": "Allow",
+                          "Action": [
+                            "logs:PutLogEvents"
+                          ],
+                          "Resource": [
+                            {
+                              "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/final-daily-schdule-mail-dev*:*:*"
+                            }
+                          ]
+                        },
+                        {
+                          "Effect": "Allow",
+                          "Action": [
+                            "SNS:Publish"
+                          ],
+                          "Resource": {
+                            "Ref": "QuotesMessages"
+                          }
+                        },
+                        {
+                          "Effect": "Allow",
+                          "Action": [
+                            "s3:*"
+                          ],
+                          "Resource": "*"
+                        },
+                        {
+                          "Effect": "Allow",
+                          "Action": [
+                            "dynamodb:Query",
+                            "dynamodb:Scan",
+                            "dynamodb:GetItem",
+                            "dynamodb:PutItem",
+                            "dynamodb:UpdateItem",
+                            "dynamodb:DeleteItem"
+                          ],
+                          "Resource": [
+                            {
+                              "Fn::GetAtt": [
+                                "UsersTable",
+                                "Arn"
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                ],
+                "Path": "/",
+                "RoleName": {
+                  "Fn::Join": [
+                    "-",
+                    [
+                      "final-daily-schdule-mail",
+                      "dev",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      "lambdaRole"
+                    ]
+                  ]
+                }
+              }
+            },
+            "PythonRequirementsLambdaLayer": {
+              "Type": "AWS::Lambda::LayerVersion",
+              "Properties": {
+                "Content": {
+                  "S3Bucket": "serverless-framework-deployments-ap-south-1-e05e9ce5-5b85",
+                  "S3Key": "serverless/final-daily-schdule-mail/dev/1769282179719-2026-01-24T19:16:19.719Z/pythonRequirements.zip"
+                },
+                "LayerName": "final-daily-schdule-mail-dev-python-requirements",
+                "Description": "Python requirements generated by serverless-python-requirements.",
+                "CompatibleRuntimes": [
+                  "python3.12"
+                ]
+              }
+            },
+            "CommonLayerLambdaLayer": {
+              "Type": "AWS::Lambda::LayerVersion",
+              "Properties": {
+                "Content": {
+                  "S3Bucket": "serverless-framework-deployments-ap-south-1-e05e9ce5-5b85",
+                  "S3Key": "serverless/final-daily-schdule-mail/dev/1769282179719-2026-01-24T19:16:19.719Z/CommonLayer.zip"
+                },
+                "LayerName": "common-layer",
+                "Description": "Common utilities (requests, etc.)",
+                "CompatibleRuntimes": [
+                  "python3.12"
+                ]
+              }
+            },
+            "FlaskLayerLambdaLayer": {
+              "Type": "AWS::Lambda::LayerVersion",
+              "Properties": {
+                "Content": {
+                  "S3Bucket": "serverless-framework-deployments-ap-south-1-e05e9ce5-5b85",
+                  "S3Key": "serverless/final-daily-schdule-mail/dev/1769282179719-2026-01-24T19:16:19.719Z/FlaskLayer.zip"
+                },
+                "LayerName": "flask-layer",
+                "Description": "Flask + Werkzeug + awsgi",
+                "CompatibleRuntimes": [
+                  "python3.12"
+                ]
+              }
+            },
+            "ApiLambdaFunction": {
+              "Type": "AWS::Lambda::Function",
+              "Properties": {
+                "Code": {
+                  "S3Bucket": "serverless-framework-deployments-ap-south-1-e05e9ce5-5b85",
+                  "S3Key": "serverless/final-daily-schdule-mail/dev/1769282927316-2026-01-24T19:28:47.316Z/final-daily-schdule-mail.zip"
+                },
+                "Handler": "wsgi_handler.handler",
+                "Runtime": "python3.12",
+                "FunctionName": "final-daily-schdule-mail-dev-api",
+                "MemorySize": 1024,
+                "Timeout": 6,
+                "Environment": {
+                  "Variables": {
+                    "USERS_TABLE": "users-table-dev",
+                    "REGION": "ap-south-1",
+                    "SNS_TOPIC_ARN": "arn:aws:sns:ap-south-1:952389988652:quotes-messages-dev"
+                  }
+                },
+                "Role": {
+                  "Fn::GetAtt": [
+                    "IamRoleLambdaExecution",
+                    "Arn"
+                  ]
+                },
+                "Layers": [
+                  {
+                    "Ref": "FlaskLayerLambdaLayer"
+                  },
+                  {
+                    "Ref": "CommonLayerLambdaLayer"
+                  }
+                ]
+              },
+              "DependsOn": [
+                "ApiLogGroup"
+              ]
+            },
+            "StaticMailerLambdaFunction": {
+              "Type": "AWS::Lambda::Function",
+              "Properties": {
+                "Code": {
+                  "S3Bucket": "serverless-framework-deployments-ap-south-1-e05e9ce5-5b85",
+                  "S3Key": "serverless/final-daily-schdule-mail/dev/1769282927316-2026-01-24T19:28:47.316Z/final-daily-schdule-mail.zip"
+                },
+                "Handler": "static_mailer.static_mailer",
+                "Runtime": "python3.12",
+                "FunctionName": "final-daily-schdule-mail-dev-staticMailer",
+                "MemorySize": 1024,
+                "Timeout": 6,
+                "Environment": {
+                  "Variables": {
+                    "USERS_TABLE": "users-table-dev",
+                    "REGION": "ap-south-1",
+                    "SNS_TOPIC_ARN": "arn:aws:sns:ap-south-1:952389988652:quotes-messages-dev"
+                  }
+                },
+                "Role": {
+                  "Fn::GetAtt": [
+                    "IamRoleLambdaExecution",
+                    "Arn"
+                  ]
+                },
+                "Layers": [
+                  {
+                    "Ref": "CommonLayerLambdaLayer"
+                  }
+                ]
+              },
+              "DependsOn": [
+                "StaticMailerLogGroup"
+              ]
+            },
+            "StaticMailerLambdaVersionPWWfzErPE0KmVsSFz0DTb2b9Ak0z9YTxryDK6Rl5lI": {
+              "Type": "AWS::Lambda::Version",
+              "DeletionPolicy": "Retain",
+              "Properties": {
+                "FunctionName": {
+                  "Ref": "StaticMailerLambdaFunction"
+                },
+                "CodeSha256": "w5UTNCYXMGqA1RUomTXqIgEMwPLD5OsI8WvSxdPbYYs="
+              }
+            },
+            "ApiLambdaVersionXEGgs0SRwVugrXMa0zIkDm3IL5UYav5k52rb3eQcyk": {
+              "Type": "AWS::Lambda::Version",
+              "DeletionPolicy": "Retain",
+              "Properties": {
+                "FunctionName": {
+                  "Ref": "ApiLambdaFunction"
+                },
+                "CodeSha256": "w5UTNCYXMGqA1RUomTXqIgEMwPLD5OsI8WvSxdPbYYs="
+              }
+            },
+            "ApiGatewayRestApi": {
+              "Type": "AWS::ApiGateway::RestApi",
+              "Properties": {
+                "Name": "dev-final-daily-schdule-mail",
+                "EndpointConfiguration": {
+                  "Types": [
+                    "EDGE"
+                  ]
+                },
+                "Policy": ""
+              }
+            },
+            "ApiGatewayResourceProxyVar": {
+              "Type": "AWS::ApiGateway::Resource",
+              "Properties": {
+                "ParentId": {
+                  "Fn::GetAtt": [
+                    "ApiGatewayRestApi",
+                    "RootResourceId"
+                  ]
+                },
+                "PathPart": "{proxy+}",
+                "RestApiId": {
+                  "Ref": "ApiGatewayRestApi"
+                }
+              }
+            },
+            "ApiGatewayResourceMailer": {
+              "Type": "AWS::ApiGateway::Resource",
+              "Properties": {
+                "ParentId": {
+                  "Fn::GetAtt": [
+                    "ApiGatewayRestApi",
+                    "RootResourceId"
+                  ]
+                },
+                "PathPart": "mailer",
+                "RestApiId": {
+                  "Ref": "ApiGatewayRestApi"
+                }
+              }
+            },
+            "ApiGatewayMethodMailerOptions": {
+              "Type": "AWS::ApiGateway::Method",
+              "Properties": {
+                "AuthorizationType": "NONE",
+                "HttpMethod": "OPTIONS",
+                "MethodResponses": [
+                  {
+                    "StatusCode": "200",
+                    "ResponseParameters": {
+                      "method.response.header.Access-Control-Allow-Origin": true,
+                      "method.response.header.Access-Control-Allow-Headers": true,
+                      "method.response.header.Access-Control-Allow-Methods": true
+                    },
+                    "ResponseModels": {}
+                  }
+                ],
+                "RequestParameters": {},
+                "Integration": {
+                  "Type": "MOCK",
+                  "RequestTemplates": {
+                    "application/json": "{statusCode:200}"
+                  },
+                  "ContentHandling": "CONVERT_TO_TEXT",
+                  "IntegrationResponses": [
+                    {
+                      "StatusCode": "200",
+                      "ResponseParameters": {
+                        "method.response.header.Access-Control-Allow-Origin": "'*'",
+                        "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,X-Amzn-Trace-Id'",
+                        "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,POST'"
+                      },
+                      "ResponseTemplates": {
+                        "application/json": ""
+                      }
+                    }
+                  ]
+                },
+                "ResourceId": {
+                  "Ref": "ApiGatewayResourceMailer"
+                },
+                "RestApiId": {
+                  "Ref": "ApiGatewayRestApi"
+                }
+              }
+            },
+            "ApiGatewayMethodAny": {
+              "Type": "AWS::ApiGateway::Method",
+              "Properties": {
+                "HttpMethod": "ANY",
+                "RequestParameters": {},
+                "ResourceId": {
+                  "Fn::GetAtt": [
+                    "ApiGatewayRestApi",
+                    "RootResourceId"
+                  ]
+                },
+                "RestApiId": {
+                  "Ref": "ApiGatewayRestApi"
+                },
+                "ApiKeyRequired": "<REDACTED>",
+                "AuthorizationType": "NONE",
+                "Integration": {
+                  "IntegrationHttpMethod": "POST",
+                  "Type": "AWS_PROXY",
+                  "Uri": {
+                    "Fn::Join": [
+                      "",
+                      [
+                        "arn:",
+                        {
+                          "Ref": "AWS::Partition"
+                        },
+                        ":apigateway:",
+                        {
+                          "Ref": "AWS::Region"
+                        },
+                        ":lambda:path/2015-03-31/functions/",
+                        {
+                          "Fn::GetAtt": [
+                            "ApiLambdaFunction",
+                            "Arn"
+                          ]
+                        },
+                        "/invocations"
+                      ]
+                    ]
+                  }
+                },
+                "MethodResponses": []
+              },
+              "DependsOn": [
+                "ApiLambdaPermissionApiGateway"
+              ]
+            },
+            "ApiGatewayMethodProxyVarAny": {
+              "Type": "AWS::ApiGateway::Method",
+              "Properties": {
+                "HttpMethod": "ANY",
+                "RequestParameters": {},
+                "ResourceId": {
+                  "Ref": "ApiGatewayResourceProxyVar"
+                },
+                "RestApiId": {
+                  "Ref": "ApiGatewayRestApi"
+                },
+                "ApiKeyRequired": "<REDACTED>",
+                "AuthorizationType": "NONE",
+                "Integration": {
+                  "IntegrationHttpMethod": "POST",
+                  "Type": "AWS_PROXY",
+                  "Uri": {
+                    "Fn::Join": [
+                      "",
+                      [
+                        "arn:",
+                        {
+                          "Ref": "AWS::Partition"
+                        },
+                        ":apigateway:",
+                        {
+                          "Ref": "AWS::Region"
+                        },
+                        ":lambda:path/2015-03-31/functions/",
+                        {
+                          "Fn::GetAtt": [
+                            "ApiLambdaFunction",
+                            "Arn"
+                          ]
+                        },
+                        "/invocations"
+                      ]
+                    ]
+                  }
+                },
+                "MethodResponses": []
+              },
+              "DependsOn": [
+                "ApiLambdaPermissionApiGateway"
+              ]
+            },
+            "ApiGatewayMethodMailerPost": {
+              "Type": "AWS::ApiGateway::Method",
+              "Properties": {
+                "HttpMethod": "POST",
+                "RequestParameters": {},
+                "ResourceId": {
+                  "Ref": "ApiGatewayResourceMailer"
+                },
+                "RestApiId": {
+                  "Ref": "ApiGatewayRestApi"
+                },
+                "ApiKeyRequired": "<REDACTED>",
+                "AuthorizationType": "NONE",
+                "Integration": {
+                  "IntegrationHttpMethod": "POST",
+                  "Type": "AWS_PROXY",
+                  "Uri": {
+                    "Fn::Join": [
+                      "",
+                      [
+                        "arn:",
+                        {
+                          "Ref": "AWS::Partition"
+                        },
+                        ":apigateway:",
+                        {
+                          "Ref": "AWS::Region"
+                        },
+                        ":lambda:path/2015-03-31/functions/",
+                        {
+                          "Fn::GetAtt": [
+                            "StaticMailerLambdaFunction",
+                            "Arn"
+                          ]
+                        },
+                        "/invocations"
+                      ]
+                    ]
+                  }
+                },
+                "MethodResponses": []
+              },
+              "DependsOn": [
+                "StaticMailerLambdaPermissionApiGateway"
+              ]
+            },
+            "ApiGatewayDeployment1769282917527": {
+              "Type": "AWS::ApiGateway::Deployment",
+              "Properties": {
+                "RestApiId": {
+                  "Ref": "ApiGatewayRestApi"
+                },
+                "StageName": "dev"
+              },
+              "DependsOn": [
+                "ApiGatewayMethodMailerOptions",
+                "ApiGatewayMethodAny",
+                "ApiGatewayMethodProxyVarAny",
+                "ApiGatewayMethodMailerPost"
+              ]
+            },
+            "ApiLambdaPermissionApiGateway": {
+              "Type": "AWS::Lambda::Permission",
+              "Properties": {
+                "FunctionName": {
+                  "Fn::GetAtt": [
+                    "ApiLambdaFunction",
+                    "Arn"
+                  ]
+                },
+                "Action": "lambda:InvokeFunction",
+                "Principal": "apigateway.amazonaws.com",
+                "SourceArn": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":execute-api:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":",
+                      {
+                        "Ref": "AWS::AccountId"
+                      },
+                      ":",
+                      {
+                        "Ref": "ApiGatewayRestApi"
+                      },
+                      "/*/*"
+                    ]
+                  ]
+                }
+              }
+            },
+            "StaticMailerLambdaPermissionApiGateway": {
+              "Type": "AWS::Lambda::Permission",
+              "Properties": {
+                "FunctionName": {
+                  "Fn::GetAtt": [
+                    "StaticMailerLambdaFunction",
+                    "Arn"
+                  ]
+                },
+                "Action": "lambda:InvokeFunction",
+                "Principal": "apigateway.amazonaws.com",
+                "SourceArn": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":execute-api:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":",
+                      {
+                        "Ref": "AWS::AccountId"
+                      },
+                      ":",
+                      {
+                        "Ref": "ApiGatewayRestApi"
+                      },
+                      "/*/*"
+                    ]
+                  ]
+                }
+              }
+            },
+            "QuotesMessages": {
+              "Type": "AWS::SNS::Topic",
+              "Properties": {
+                "TopicName": "quotes-messages-dev"
+              }
+            },
+            "QuotesMessagesSubscription": {
+              "Type": "AWS::SNS::Subscription",
+              "Properties": {
+                "TopicArn": {
+                  "Ref": "QuotesMessages"
+                },
+                "Protocol": "email",
+                "Endpoint": "bariksoumyadipwork@gmail.com",
+                "DeliveryPolicy": {
+                  "healthyRetryPolicy": {
+                    "numRetries": 20,
+                    "minDelayTarget": 30,
+                    "maxDelayTarget": 600,
+                    "backoffFunction": "exponential"
+                  }
+                }
+              }
+            },
+            "UsersTable": {
+              "Type": "AWS::DynamoDB::Table",
+              "Properties": {
+                "AttributeDefinitions": [
+                  {
+                    "AttributeName": "userId",
+                    "AttributeType": "S"
+                  }
+                ],
+                "KeySchema": [
+                  {
+                    "AttributeName": "userId",
+                    "KeyType": "HASH"
+                  }
+                ],
+                "BillingMode": "PAY_PER_REQUEST",
+                "TableName": "users-table-dev"
+              }
+            }
+          },
+          "Outputs": {
+            "ServerlessDeploymentBucketName": {
+              "Value": "serverless-framework-deployments-ap-south-1-e05e9ce5-5b85",
+              "Export": {
+                "Name": "sls-final-daily-schdule-mail-dev-ServerlessDeploymentBucketName"
+              }
+            },
+            "PythonRequirementsLambdaLayerQualifiedArn": {
+              "Description": "Current Lambda layer version",
+              "Value": {
+                "Ref": "PythonRequirementsLambdaLayer"
+              },
+              "Export": {
+                "Name": "sls-final-daily-schdule-mail-dev-PythonRequirementsLambdaLayerQualifiedArn"
+              }
+            },
+            "PythonRequirementsLambdaLayerHash": {
+              "Description": "Current Lambda layer hash",
+              "Value": "4509fbadbb90616c4f310961221ef9e20ea4b5ca",
+              "Export": {
+                "Name": "sls-final-daily-schdule-mail-dev-PythonRequirementsLambdaLayerHash"
+              }
+            },
+            "PythonRequirementsLambdaLayerS3Key": {
+              "Description": "Current Lambda layer S3Key",
+              "Value": "serverless/final-daily-schdule-mail/dev/1769282179719-2026-01-24T19:16:19.719Z/pythonRequirements.zip",
+              "Export": {
+                "Name": "sls-final-daily-schdule-mail-dev-PythonRequirementsLambdaLayerS3Key"
+              }
+            },
+            "CommonLayerLambdaLayerQualifiedArn": {
+              "Description": "Current Lambda layer version",
+              "Value": {
+                "Ref": "CommonLayerLambdaLayer"
+              },
+              "Export": {
+                "Name": "sls-final-daily-schdule-mail-dev-CommonLayerLambdaLayerQualifiedArn"
+              }
+            },
+            "CommonLayerLambdaLayerHash": {
+              "Description": "Current Lambda layer hash",
+              "Value": "8fad02de34954f846a1deec31b7d723000a7726c",
+              "Export": {
+                "Name": "sls-final-daily-schdule-mail-dev-CommonLayerLambdaLayerHash"
+              }
+            },
+            "CommonLayerLambdaLayerS3Key": {
+              "Description": "Current Lambda layer S3Key",
+              "Value": "serverless/final-daily-schdule-mail/dev/1769282179719-2026-01-24T19:16:19.719Z/CommonLayer.zip",
+              "Export": {
+                "Name": "sls-final-daily-schdule-mail-dev-CommonLayerLambdaLayerS3Key"
+              }
+            },
+            "FlaskLayerLambdaLayerQualifiedArn": {
+              "Description": "Current Lambda layer version",
+              "Value": {
+                "Ref": "FlaskLayerLambdaLayer"
+              },
+              "Export": {
+                "Name": "sls-final-daily-schdule-mail-dev-FlaskLayerLambdaLayerQualifiedArn"
+              }
+            },
+            "FlaskLayerLambdaLayerHash": {
+              "Description": "Current Lambda layer hash",
+              "Value": "d0dac8a254fbfa9904832d378ebda16bdb75d32e",
+              "Export": {
+                "Name": "sls-final-daily-schdule-mail-dev-FlaskLayerLambdaLayerHash"
+              }
+            },
+            "FlaskLayerLambdaLayerS3Key": {
+              "Description": "Current Lambda layer S3Key",
+              "Value": "serverless/final-daily-schdule-mail/dev/1769282179719-2026-01-24T19:16:19.719Z/FlaskLayer.zip",
+              "Export": {
+                "Name": "sls-final-daily-schdule-mail-dev-FlaskLayerLambdaLayerS3Key"
+              }
+            },
+            "StaticMailerLambdaFunctionQualifiedArn": {
+              "Description": "Current Lambda function version",
+              "Value": {
+                "Ref": "StaticMailerLambdaVersionPWWfzErPE0KmVsSFz0DTb2b9Ak0z9YTxryDK6Rl5lI"
+              },
+              "Export": {
+                "Name": "sls-final-daily-schdule-mail-dev-StaticMailerLambdaFunctionQualifiedArn"
+              }
+            },
+            "ApiLambdaFunctionQualifiedArn": {
+              "Description": "Current Lambda function version",
+              "Value": {
+                "Ref": "ApiLambdaVersionXEGgs0SRwVugrXMa0zIkDm3IL5UYav5k52rb3eQcyk"
+              },
+              "Export": {
+                "Name": "sls-final-daily-schdule-mail-dev-ApiLambdaFunctionQualifiedArn"
+              }
+            },
+            "ServiceEndpoint": {
+              "Description": "URL of the service endpoint",
+              "Value": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "https://",
+                    {
+                      "Ref": "ApiGatewayRestApi"
+                    },
+                    ".execute-api.",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ".",
+                    {
+                      "Ref": "AWS::URLSuffix"
+                    },
+                    "/dev"
+                  ]
+                ]
+              },
+              "Export": {
+                "Name": "sls-final-daily-schdule-mail-dev-ServiceEndpoint"
+              }
+            }
+          }
+        },
+        "vpc": {}
+      },
+      "functions": {
+        "api": {
+          "handler": "wsgi_handler.handler",
+          "layers": [
+            {
+              "Ref": "FlaskLayerLambdaLayer"
+            },
+            {
+              "Ref": "CommonLayerLambdaLayer"
+            }
+          ],
+          "events": [
+            {
+              "http": {
+                "path": "",
+                "method": "any",
+                "integration": "AWS_PROXY"
+              }
+            },
+            {
+              "http": {
+                "path": "{proxy+}",
+                "method": "any",
+                "integration": "AWS_PROXY"
+              }
+            }
+          ],
+          "name": "final-daily-schdule-mail-dev-api",
+          "package": {},
+          "memory": 1024,
+          "timeout": 6,
+          "runtime": "python3.12",
+          "vpc": {},
+          "versionLogicalId": "ApiLambdaVersionXEGgs0SRwVugrXMa0zIkDm3IL5UYav5k52rb3eQcyk"
+        },
+        "staticMailer": {
+          "handler": "static_mailer.static_mailer",
+          "layers": [
+            {
+              "Ref": "CommonLayerLambdaLayer"
+            }
+          ],
+          "events": [
+            {
+              "http": {
+                "path": "mailer",
+                "method": "post",
+                "cors": {
+                  "origin": "*",
+                  "methods": [
+                    "OPTIONS",
+                    "POST"
+                  ],
+                  "headers": [
+                    "Content-Type",
+                    "X-Amz-Date",
+                    "Authorization",
+                    "X-Api-Key",
+                    "X-Amz-Security-Token",
+                    "X-Amz-User-Agent",
+                    "X-Amzn-Trace-Id"
+                  ],
+                  "allowCredentials": "<REDACTED>"
+                },
+                "integration": "AWS_PROXY"
+              }
+            }
+          ],
+          "name": "final-daily-schdule-mail-dev-staticMailer",
+          "package": {},
+          "memory": 1024,
+          "timeout": 6,
+          "runtime": "python3.12",
+          "vpc": {},
+          "versionLogicalId": "StaticMailerLambdaVersionPWWfzErPE0KmVsSFz0DTb2b9Ak0z9YTxryDK6Rl5lI"
+        }
+      },
+      "resources": {
+        "Resources": {
+          "QuotesMessages": {
+            "Type": "AWS::SNS::Topic",
+            "Properties": {
+              "TopicName": "quotes-messages-dev"
+            }
+          },
+          "QuotesMessagesSubscription": {
+            "Type": "AWS::SNS::Subscription",
+            "Properties": {
+              "TopicArn": {
+                "Ref": "QuotesMessages"
+              },
+              "Protocol": "email",
+              "Endpoint": "bariksoumyadipwork@gmail.com",
+              "DeliveryPolicy": {
+                "healthyRetryPolicy": {
+                  "numRetries": 20,
+                  "minDelayTarget": 30,
+                  "maxDelayTarget": 600,
+                  "backoffFunction": "exponential"
+                }
+              }
+            }
+          },
+          "UsersTable": {
+            "Type": "AWS::DynamoDB::Table",
+            "Properties": {
+              "AttributeDefinitions": [
+                {
+                  "AttributeName": "userId",
+                  "AttributeType": "S"
+                }
+              ],
+              "KeySchema": [
+                {
+                  "AttributeName": "userId",
+                  "KeyType": "HASH"
+                }
+              ],
+              "BillingMode": "PAY_PER_REQUEST",
+              "TableName": "users-table-dev"
+            }
+          }
+        },
+        "Outputs": {}
+      },
+      "layers": {
+        "CommonLayer": {
+          "path": "layer/python/common",
+          "name": "common-layer",
+          "description": "Common utilities (requests, etc.)",
+          "compatibleRuntimes": [
+            "python3.12"
+          ],
+          "package": {
+            "artifact": "C:\\Users\\barik\\Downloads\\Serverless-AWS\\final-daily-schdule-mail\\.serverless\\CommonLayer.zip"
+          },
+          "artifactAlreadyUploaded": true
+        },
+        "FlaskLayer": {
+          "path": "layer/python/flask",
+          "name": "flask-layer",
+          "description": "Flask + Werkzeug + awsgi",
+          "compatibleRuntimes": [
+            "python3.12"
+          ],
+          "package": {
+            "artifact": "C:\\Users\\barik\\Downloads\\Serverless-AWS\\final-daily-schdule-mail\\.serverless\\FlaskLayer.zip"
+          },
+          "artifactAlreadyUploaded": true
+        },
+        "pythonRequirements": {
+          "artifact": ".serverless\\pythonRequirements.zip",
+          "name": "final-daily-schdule-mail-dev-python-requirements",
+          "description": "Python requirements generated by serverless-python-requirements.",
+          "compatibleRuntimes": [
+            "python3.12"
+          ],
+          "package": {},
+          "artifactAlreadyUploaded": true
+        }
+      },
+      "package": {
+        "exclude": [
+          "front-end/**",
+          ".vscode/**",
+          ".serverless/**",
+          ".venv/**",
+          "__pycache__/**",
+          "node_modules/**",
+          ".git/**",
+          ".next/**",
+          "tests/**",
+          "README.md",
+          "package-lock.json",
+          "quotes.json"
+        ],
+        "artifactsS3KeyDirname": "serverless/final-daily-schdule-mail/dev/code-artifacts",
+        "deploymentBucket": "serverless-framework-deployments-ap-south-1-e05e9ce5-5b85",
+        "patterns": [
+          "wsgi_handler.py",
+          "serverless_wsgi.py",
+          ".serverless-wsgi",
+          "unzip_requirements.py",
+          ".requirements.zip"
+        ],
+        "artifact": "C:\\Users\\barik\\Downloads\\Serverless-AWS\\final-daily-schdule-mail\\.serverless\\final-daily-schdule-mail.zip",
+        "artifactDirectoryName": "serverless/final-daily-schdule-mail/dev/1769282927316-2026-01-24T19:28:47.316Z"
+      }
+    },
+    "provider": {
+      "name": "aws",
+      "runtime": "python3.12",
+      "region": "ap-south-1",
+      "stage": "dev",
+      "httpApi": {
+        "cors": {
+          "allowedOrigins": [
+            "http://localhost:3000"
+          ],
+          "allowedHeaders": [
+            "Content-Type"
+          ],
+          "allowedMethods": [
+            "GET",
+            "POST",
+            "OPTIONS"
+          ]
+        }
+      },
+      "iam": {
+        "role": {
+          "statements": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "SNS:Publish"
+              ],
+              "Resource": {
+                "Ref": "QuotesMessages"
+              }
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "s3:*"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "dynamodb:Query",
+                "dynamodb:Scan",
+                "dynamodb:GetItem",
+                "dynamodb:PutItem",
+                "dynamodb:UpdateItem",
+                "dynamodb:DeleteItem"
+              ],
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "UsersTable",
+                    "Arn"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "environment": {
+        "USERS_TABLE": "users-table-dev",
+        "REGION": "ap-south-1",
+        "SNS_TOPIC_ARN": "arn:aws:sns:ap-south-1:952389988652:quotes-messages-dev"
+      },
+      "versionFunctions": true,
+      "compiledCloudFormationTemplate": {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "The AWS CloudFormation template for this Serverless application",
+        "Resources": {
+          "ApiLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/final-daily-schdule-mail-dev-api"
+            }
+          },
+          "StaticMailerLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/final-daily-schdule-mail-dev-staticMailer"
+            }
+          },
+          "IamRoleLambdaExecution": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+              "AssumeRolePolicyDocument": {
+                "Version": "2012-10-17",
+                "Statement": [
+                  {
+                    "Effect": "Allow",
+                    "Principal": {
+                      "Service": [
+                        "lambda.amazonaws.com"
+                      ]
+                    },
+                    "Action": [
+                      "sts:AssumeRole"
+                    ]
+                  }
+                ]
+              },
+              "Policies": [
+                {
+                  "PolicyName": {
+                    "Fn::Join": [
+                      "-",
+                      [
+                        "final-daily-schdule-mail",
+                        "dev",
+                        "lambda"
+                      ]
+                    ]
+                  },
+                  "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "logs:CreateLogStream",
+                          "logs:CreateLogGroup",
+                          "logs:TagResource"
+                        ],
+                        "Resource": [
+                          {
+                            "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/final-daily-schdule-mail-dev*:*"
+                          }
+                        ]
+                      },
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "logs:PutLogEvents"
+                        ],
+                        "Resource": [
+                          {
+                            "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/final-daily-schdule-mail-dev*:*:*"
+                          }
+                        ]
+                      },
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "SNS:Publish"
+                        ],
+                        "Resource": {
+                          "Ref": "QuotesMessages"
+                        }
+                      },
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "s3:*"
+                        ],
+                        "Resource": "*"
+                      },
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "dynamodb:Query",
+                          "dynamodb:Scan",
+                          "dynamodb:GetItem",
+                          "dynamodb:PutItem",
+                          "dynamodb:UpdateItem",
+                          "dynamodb:DeleteItem"
+                        ],
+                        "Resource": [
+                          {
+                            "Fn::GetAtt": [
+                              "UsersTable",
+                              "Arn"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ],
+              "Path": "/",
+              "RoleName": {
+                "Fn::Join": [
+                  "-",
+                  [
+                    "final-daily-schdule-mail",
+                    "dev",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    "lambdaRole"
+                  ]
+                ]
+              }
+            }
+          },
+          "PythonRequirementsLambdaLayer": {
+            "Type": "AWS::Lambda::LayerVersion",
+            "Properties": {
+              "Content": {
+                "S3Bucket": "serverless-framework-deployments-ap-south-1-e05e9ce5-5b85",
+                "S3Key": "serverless/final-daily-schdule-mail/dev/1769282179719-2026-01-24T19:16:19.719Z/pythonRequirements.zip"
+              },
+              "LayerName": "final-daily-schdule-mail-dev-python-requirements",
+              "Description": "Python requirements generated by serverless-python-requirements.",
+              "CompatibleRuntimes": [
+                "python3.12"
+              ]
+            }
+          },
+          "CommonLayerLambdaLayer": {
+            "Type": "AWS::Lambda::LayerVersion",
+            "Properties": {
+              "Content": {
+                "S3Bucket": "serverless-framework-deployments-ap-south-1-e05e9ce5-5b85",
+                "S3Key": "serverless/final-daily-schdule-mail/dev/1769282179719-2026-01-24T19:16:19.719Z/CommonLayer.zip"
+              },
+              "LayerName": "common-layer",
+              "Description": "Common utilities (requests, etc.)",
+              "CompatibleRuntimes": [
+                "python3.12"
+              ]
+            }
+          },
+          "FlaskLayerLambdaLayer": {
+            "Type": "AWS::Lambda::LayerVersion",
+            "Properties": {
+              "Content": {
+                "S3Bucket": "serverless-framework-deployments-ap-south-1-e05e9ce5-5b85",
+                "S3Key": "serverless/final-daily-schdule-mail/dev/1769282179719-2026-01-24T19:16:19.719Z/FlaskLayer.zip"
+              },
+              "LayerName": "flask-layer",
+              "Description": "Flask + Werkzeug + awsgi",
+              "CompatibleRuntimes": [
+                "python3.12"
+              ]
+            }
+          },
+          "ApiLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": "serverless-framework-deployments-ap-south-1-e05e9ce5-5b85",
+                "S3Key": "serverless/final-daily-schdule-mail/dev/1769282927316-2026-01-24T19:28:47.316Z/final-daily-schdule-mail.zip"
+              },
+              "Handler": "wsgi_handler.handler",
+              "Runtime": "python3.12",
+              "FunctionName": "final-daily-schdule-mail-dev-api",
+              "MemorySize": 1024,
+              "Timeout": 6,
+              "Environment": {
+                "Variables": {
+                  "USERS_TABLE": "users-table-dev",
+                  "REGION": "ap-south-1",
+                  "SNS_TOPIC_ARN": "arn:aws:sns:ap-south-1:952389988652:quotes-messages-dev"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              },
+              "Layers": [
+                {
+                  "Ref": "FlaskLayerLambdaLayer"
+                },
+                {
+                  "Ref": "CommonLayerLambdaLayer"
+                }
+              ]
+            },
+            "DependsOn": [
+              "ApiLogGroup"
+            ]
+          },
+          "StaticMailerLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": "serverless-framework-deployments-ap-south-1-e05e9ce5-5b85",
+                "S3Key": "serverless/final-daily-schdule-mail/dev/1769282927316-2026-01-24T19:28:47.316Z/final-daily-schdule-mail.zip"
+              },
+              "Handler": "static_mailer.static_mailer",
+              "Runtime": "python3.12",
+              "FunctionName": "final-daily-schdule-mail-dev-staticMailer",
+              "MemorySize": 1024,
+              "Timeout": 6,
+              "Environment": {
+                "Variables": {
+                  "USERS_TABLE": "users-table-dev",
+                  "REGION": "ap-south-1",
+                  "SNS_TOPIC_ARN": "arn:aws:sns:ap-south-1:952389988652:quotes-messages-dev"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              },
+              "Layers": [
+                {
+                  "Ref": "CommonLayerLambdaLayer"
+                }
+              ]
+            },
+            "DependsOn": [
+              "StaticMailerLogGroup"
+            ]
+          },
+          "StaticMailerLambdaVersionPWWfzErPE0KmVsSFz0DTb2b9Ak0z9YTxryDK6Rl5lI": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "StaticMailerLambdaFunction"
+              },
+              "CodeSha256": "w5UTNCYXMGqA1RUomTXqIgEMwPLD5OsI8WvSxdPbYYs="
+            }
+          },
+          "ApiLambdaVersionXEGgs0SRwVugrXMa0zIkDm3IL5UYav5k52rb3eQcyk": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "ApiLambdaFunction"
+              },
+              "CodeSha256": "w5UTNCYXMGqA1RUomTXqIgEMwPLD5OsI8WvSxdPbYYs="
+            }
+          },
+          "ApiGatewayRestApi": {
+            "Type": "AWS::ApiGateway::RestApi",
+            "Properties": {
+              "Name": "dev-final-daily-schdule-mail",
+              "EndpointConfiguration": {
+                "Types": [
+                  "EDGE"
+                ]
+              },
+              "Policy": ""
+            }
+          },
+          "ApiGatewayResourceProxyVar": {
+            "Type": "AWS::ApiGateway::Resource",
+            "Properties": {
+              "ParentId": {
+                "Fn::GetAtt": [
+                  "ApiGatewayRestApi",
+                  "RootResourceId"
+                ]
+              },
+              "PathPart": "{proxy+}",
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayResourceMailer": {
+            "Type": "AWS::ApiGateway::Resource",
+            "Properties": {
+              "ParentId": {
+                "Fn::GetAtt": [
+                  "ApiGatewayRestApi",
+                  "RootResourceId"
+                ]
+              },
+              "PathPart": "mailer",
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayMethodMailerOptions": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "AuthorizationType": "NONE",
+              "HttpMethod": "OPTIONS",
+              "MethodResponses": [
+                {
+                  "StatusCode": "200",
+                  "ResponseParameters": {
+                    "method.response.header.Access-Control-Allow-Origin": true,
+                    "method.response.header.Access-Control-Allow-Headers": true,
+                    "method.response.header.Access-Control-Allow-Methods": true
+                  },
+                  "ResponseModels": {}
+                }
+              ],
+              "RequestParameters": {},
+              "Integration": {
+                "Type": "MOCK",
+                "RequestTemplates": {
+                  "application/json": "{statusCode:200}"
+                },
+                "ContentHandling": "CONVERT_TO_TEXT",
+                "IntegrationResponses": [
+                  {
+                    "StatusCode": "200",
+                    "ResponseParameters": {
+                      "method.response.header.Access-Control-Allow-Origin": "'*'",
+                      "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,X-Amzn-Trace-Id'",
+                      "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,POST'"
+                    },
+                    "ResponseTemplates": {
+                      "application/json": ""
+                    }
+                  }
+                ]
+              },
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceMailer"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayMethodAny": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "HttpMethod": "ANY",
+              "RequestParameters": {},
+              "ResourceId": {
+                "Fn::GetAtt": [
+                  "ApiGatewayRestApi",
+                  "RootResourceId"
+                ]
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "ApiKeyRequired": "<REDACTED>",
+              "AuthorizationType": "NONE",
+              "Integration": {
+                "IntegrationHttpMethod": "POST",
+                "Type": "AWS_PROXY",
+                "Uri": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":apigateway:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":lambda:path/2015-03-31/functions/",
+                      {
+                        "Fn::GetAtt": [
+                          "ApiLambdaFunction",
+                          "Arn"
+                        ]
+                      },
+                      "/invocations"
+                    ]
+                  ]
+                }
+              },
+              "MethodResponses": []
+            },
+            "DependsOn": [
+              "ApiLambdaPermissionApiGateway"
+            ]
+          },
+          "ApiGatewayMethodProxyVarAny": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "HttpMethod": "ANY",
+              "RequestParameters": {},
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceProxyVar"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "ApiKeyRequired": "<REDACTED>",
+              "AuthorizationType": "NONE",
+              "Integration": {
+                "IntegrationHttpMethod": "POST",
+                "Type": "AWS_PROXY",
+                "Uri": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":apigateway:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":lambda:path/2015-03-31/functions/",
+                      {
+                        "Fn::GetAtt": [
+                          "ApiLambdaFunction",
+                          "Arn"
+                        ]
+                      },
+                      "/invocations"
+                    ]
+                  ]
+                }
+              },
+              "MethodResponses": []
+            },
+            "DependsOn": [
+              "ApiLambdaPermissionApiGateway"
+            ]
+          },
+          "ApiGatewayMethodMailerPost": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "HttpMethod": "POST",
+              "RequestParameters": {},
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceMailer"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "ApiKeyRequired": "<REDACTED>",
+              "AuthorizationType": "NONE",
+              "Integration": {
+                "IntegrationHttpMethod": "POST",
+                "Type": "AWS_PROXY",
+                "Uri": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":apigateway:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":lambda:path/2015-03-31/functions/",
+                      {
+                        "Fn::GetAtt": [
+                          "StaticMailerLambdaFunction",
+                          "Arn"
+                        ]
+                      },
+                      "/invocations"
+                    ]
+                  ]
+                }
+              },
+              "MethodResponses": []
+            },
+            "DependsOn": [
+              "StaticMailerLambdaPermissionApiGateway"
+            ]
+          },
+          "ApiGatewayDeployment1769282917527": {
+            "Type": "AWS::ApiGateway::Deployment",
+            "Properties": {
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "StageName": "dev"
+            },
+            "DependsOn": [
+              "ApiGatewayMethodMailerOptions",
+              "ApiGatewayMethodAny",
+              "ApiGatewayMethodProxyVarAny",
+              "ApiGatewayMethodMailerPost"
+            ]
+          },
+          "ApiLambdaPermissionApiGateway": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "ApiLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "apigateway.amazonaws.com",
+              "SourceArn": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":execute-api:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId"
+                    },
+                    ":",
+                    {
+                      "Ref": "ApiGatewayRestApi"
+                    },
+                    "/*/*"
+                  ]
+                ]
+              }
+            }
+          },
+          "StaticMailerLambdaPermissionApiGateway": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "StaticMailerLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "apigateway.amazonaws.com",
+              "SourceArn": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":execute-api:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId"
+                    },
+                    ":",
+                    {
+                      "Ref": "ApiGatewayRestApi"
+                    },
+                    "/*/*"
+                  ]
+                ]
+              }
+            }
+          },
+          "QuotesMessages": {
+            "Type": "AWS::SNS::Topic",
+            "Properties": {
+              "TopicName": "quotes-messages-dev"
+            }
+          },
+          "QuotesMessagesSubscription": {
+            "Type": "AWS::SNS::Subscription",
+            "Properties": {
+              "TopicArn": {
+                "Ref": "QuotesMessages"
+              },
+              "Protocol": "email",
+              "Endpoint": "bariksoumyadipwork@gmail.com",
+              "DeliveryPolicy": {
+                "healthyRetryPolicy": {
+                  "numRetries": 20,
+                  "minDelayTarget": 30,
+                  "maxDelayTarget": 600,
+                  "backoffFunction": "exponential"
+                }
+              }
+            }
+          },
+          "UsersTable": {
+            "Type": "AWS::DynamoDB::Table",
+            "Properties": {
+              "AttributeDefinitions": [
+                {
+                  "AttributeName": "userId",
+                  "AttributeType": "S"
+                }
+              ],
+              "KeySchema": [
+                {
+                  "AttributeName": "userId",
+                  "KeyType": "HASH"
+                }
+              ],
+              "BillingMode": "PAY_PER_REQUEST",
+              "TableName": "users-table-dev"
+            }
+          }
+        },
+        "Outputs": {
+          "ServerlessDeploymentBucketName": {
+            "Value": "serverless-framework-deployments-ap-south-1-e05e9ce5-5b85",
+            "Export": {
+              "Name": "sls-final-daily-schdule-mail-dev-ServerlessDeploymentBucketName"
+            }
+          },
+          "PythonRequirementsLambdaLayerQualifiedArn": {
+            "Description": "Current Lambda layer version",
+            "Value": {
+              "Ref": "PythonRequirementsLambdaLayer"
+            },
+            "Export": {
+              "Name": "sls-final-daily-schdule-mail-dev-PythonRequirementsLambdaLayerQualifiedArn"
+            }
+          },
+          "PythonRequirementsLambdaLayerHash": {
+            "Description": "Current Lambda layer hash",
+            "Value": "4509fbadbb90616c4f310961221ef9e20ea4b5ca",
+            "Export": {
+              "Name": "sls-final-daily-schdule-mail-dev-PythonRequirementsLambdaLayerHash"
+            }
+          },
+          "PythonRequirementsLambdaLayerS3Key": {
+            "Description": "Current Lambda layer S3Key",
+            "Value": "serverless/final-daily-schdule-mail/dev/1769282179719-2026-01-24T19:16:19.719Z/pythonRequirements.zip",
+            "Export": {
+              "Name": "sls-final-daily-schdule-mail-dev-PythonRequirementsLambdaLayerS3Key"
+            }
+          },
+          "CommonLayerLambdaLayerQualifiedArn": {
+            "Description": "Current Lambda layer version",
+            "Value": {
+              "Ref": "CommonLayerLambdaLayer"
+            },
+            "Export": {
+              "Name": "sls-final-daily-schdule-mail-dev-CommonLayerLambdaLayerQualifiedArn"
+            }
+          },
+          "CommonLayerLambdaLayerHash": {
+            "Description": "Current Lambda layer hash",
+            "Value": "8fad02de34954f846a1deec31b7d723000a7726c",
+            "Export": {
+              "Name": "sls-final-daily-schdule-mail-dev-CommonLayerLambdaLayerHash"
+            }
+          },
+          "CommonLayerLambdaLayerS3Key": {
+            "Description": "Current Lambda layer S3Key",
+            "Value": "serverless/final-daily-schdule-mail/dev/1769282179719-2026-01-24T19:16:19.719Z/CommonLayer.zip",
+            "Export": {
+              "Name": "sls-final-daily-schdule-mail-dev-CommonLayerLambdaLayerS3Key"
+            }
+          },
+          "FlaskLayerLambdaLayerQualifiedArn": {
+            "Description": "Current Lambda layer version",
+            "Value": {
+              "Ref": "FlaskLayerLambdaLayer"
+            },
+            "Export": {
+              "Name": "sls-final-daily-schdule-mail-dev-FlaskLayerLambdaLayerQualifiedArn"
+            }
+          },
+          "FlaskLayerLambdaLayerHash": {
+            "Description": "Current Lambda layer hash",
+            "Value": "d0dac8a254fbfa9904832d378ebda16bdb75d32e",
+            "Export": {
+              "Name": "sls-final-daily-schdule-mail-dev-FlaskLayerLambdaLayerHash"
+            }
+          },
+          "FlaskLayerLambdaLayerS3Key": {
+            "Description": "Current Lambda layer S3Key",
+            "Value": "serverless/final-daily-schdule-mail/dev/1769282179719-2026-01-24T19:16:19.719Z/FlaskLayer.zip",
+            "Export": {
+              "Name": "sls-final-daily-schdule-mail-dev-FlaskLayerLambdaLayerS3Key"
+            }
+          },
+          "StaticMailerLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "StaticMailerLambdaVersionPWWfzErPE0KmVsSFz0DTb2b9Ak0z9YTxryDK6Rl5lI"
+            },
+            "Export": {
+              "Name": "sls-final-daily-schdule-mail-dev-StaticMailerLambdaFunctionQualifiedArn"
+            }
+          },
+          "ApiLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "ApiLambdaVersionXEGgs0SRwVugrXMa0zIkDm3IL5UYav5k52rb3eQcyk"
+            },
+            "Export": {
+              "Name": "sls-final-daily-schdule-mail-dev-ApiLambdaFunctionQualifiedArn"
+            }
+          },
+          "ServiceEndpoint": {
+            "Description": "URL of the service endpoint",
+            "Value": {
+              "Fn::Join": [
+                "",
+                [
+                  "https://",
+                  {
+                    "Ref": "ApiGatewayRestApi"
+                  },
+                  ".execute-api.",
+                  {
+                    "Ref": "AWS::Region"
+                  },
+                  ".",
+                  {
+                    "Ref": "AWS::URLSuffix"
+                  },
+                  "/dev"
+                ]
+              ]
+            },
+            "Export": {
+              "Name": "sls-final-daily-schdule-mail-dev-ServiceEndpoint"
+            }
+          }
+        }
+      },
+      "vpc": {}
+    },
+    "dashboard": {
+      "isEnabledForService": true,
+      "requiredAuthentication": false,
+      "orgFeaturesInUse": {
+        "providers": false,
+        "monitoring": false
+      },
+      "orgObservabilityIntegrations": null,
+      "serviceAppId": "7w3rNTlB0RWZtPsfB1",
+      "serviceProvider": null,
+      "instanceParameters": null
+    },
+    "serviceRawFile": "org: soumya1998\napp: serverless-app-main\nservice: final-daily-schdule-mail\n\nstages:\n  default:\n    params:\n      tableName: \"users-table-${sls:stage}\"\n\nplugins:\n  - serverless-wsgi\n  - serverless-python-requirements\n\ncustom:\n  tableName: \"users-table-${sls:stage}\"\n  wsgi:\n    app: app.app\n  pythonRequirements:\n    dockerizePip: true\n    slim: true\n    zip: true\n    layer: true\n\nprovider:\n  name: aws\n  runtime: python3.12\n  region: ap-south-1\n  stage: dev\n  httpApi:\n    cors:\n      allowedOrigins:\n        - \"http://localhost:3000\"\n      allowedHeaders:\n        - Content-Type\n      allowedMethods:\n        - GET\n        - POST\n        - OPTIONS\n  iam:\n    role:\n      statements:\n        - Effect: Allow\n          Action: SNS:Publish\n          Resource: !Ref QuotesMessages\n        - Effect: Allow\n          Action: \"s3:*\"\n          Resource: \"*\"\n        - Effect: Allow\n          Action:\n            - dynamodb:Query\n            - dynamodb:Scan\n            - dynamodb:GetItem\n            - dynamodb:PutItem\n            - dynamodb:UpdateItem\n            - dynamodb:DeleteItem\n          Resource:\n            - Fn::GetAtt: [ UsersTable, Arn ]\n  environment:\n    USERS_TABLE: ${param:tableName}\n    REGION: ${self:provider.region}\n    SNS_TOPIC_ARN: arn:aws:sns:ap-south-1:952389988652:quotes-messages-dev\n\nfunctions:\n  api:\n    handler: wsgi_handler.handler\n    layers:\n      - { Ref: FlaskLayerLambdaLayer }    # needs Flask\n      - { Ref: CommonLayerLambdaLayer }   # also needs common\n    events:\n      - http:\n          path: /\n          method: ANY\n      - http:\n          path: /{proxy+}\n          method: ANY\n\n  staticMailer:\n    handler: static_mailer.static_mailer\n    layers:\n      - { Ref: CommonLayerLambdaLayer }   # only needs common\n    events:\n      - http:\n          path: mailer\n          method: post\n          cors: true\n\nresources:\n  Resources:\n  #SNS\n    QuotesMessages:\n      Type: AWS::SNS::Topic\n      Properties:\n        TopicName: quotes-messages-${self:provider.stage}\n    QuotesMessagesSubscription:\n      Type: AWS::SNS::Subscription\n      Properties:\n        TopicArn: !Ref QuotesMessages\n        Protocol: email\n        Endpoint: bariksoumyadipwork@gmail.com\n        DeliveryPolicy: \n          healthyRetryPolicy:\n            numRetries: 20\n            minDelayTarget: 30\n            maxDelayTarget: 600\n            backoffFunction: exponential\n\n\n\n    UsersTable:\n      Type: AWS::DynamoDB::Table\n      Properties:\n        AttributeDefinitions:\n          - AttributeName: userId\n            AttributeType: S\n        KeySchema:\n          - AttributeName: userId\n            KeyType: HASH\n        BillingMode: PAY_PER_REQUEST\n        TableName: ${self:custom.tableName}\n\nlayers:\n  CommonLayer:\n    path: layer/python/common\n    name: common-layer\n    description: \"Common utilities (requests, etc.)\"\n    compatibleRuntimes:\n      - python3.12\n\n  FlaskLayer:\n    path: layer/python/flask\n    name: flask-layer\n    description: \"Flask + Werkzeug + awsgi\"\n    compatibleRuntimes:\n      - python3.12\n\npackage:\n  exclude:\n    - front-end/**\n    - .vscode/**\n    - .serverless/**\n    - .venv/**\n    - __pycache__/**\n    - node_modules/**\n    - .git/**\n    - .next/**\n    - tests/**\n    - README.md\n    - package-lock.json\n    - quotes.json",
+    "command": [
+      "deploy"
+    ],
+    "options": {},
+    "orgId": "9fc3ce06-a3f9-497a-8998-61600ed5f263",
+    "orgName": "soumya1998",
+    "userId": "FS2lX9tBpC4FxC4hJw",
+    "userName": "soumya1998",
+    "serviceProviderAwsAccountId": "952389988652",
+    "serviceProviderAwsCfStackName": "final-daily-schdule-mail-dev",
+    "serviceProviderAwsCfStackId": "arn:aws:cloudformation:ap-south-1:952389988652:stack/final-daily-schdule-mail-dev/a89e7f90-f8a4-11f0-be95-0a70e6afd3b9",
+    "serviceProviderAwsCfStackCreated": "2026-01-23T21:44:13.676Z",
+    "serviceProviderAwsCfStackUpdated": "2026-01-24T19:26:04.282Z",
+    "serviceProviderAwsCfStackStatus": "UPDATE_COMPLETE",
+    "serviceProviderAwsCfStackOutputs": [
+      {
+        "OutputKey": "CommonLayerLambdaLayerHash",
+        "OutputValue": "8fad02de34954f846a1deec31b7d723000a7726c",
+        "Description": "Current Lambda layer hash",
+        "ExportName": "sls-final-daily-schdule-mail-dev-CommonLayerLambdaLayerHash"
+      },
+      {
+        "OutputKey": "PythonRequirementsLambdaLayerQualifiedArn",
+        "OutputValue": "arn:aws:lambda:ap-south-1:952389988652:layer:final-daily-schdule-mail-dev-python-requirements:6",
+        "Description": "Current Lambda layer version",
+        "ExportName": "sls-final-daily-schdule-mail-dev-PythonRequirementsLambdaLayerQualifiedArn"
+      },
+      {
+        "OutputKey": "ServerlessDeploymentBucketName",
+        "OutputValue": "serverless-framework-deployments-ap-south-1-e05e9ce5-5b85",
+        "ExportName": "sls-final-daily-schdule-mail-dev-ServerlessDeploymentBucketName"
+      },
+      {
+        "OutputKey": "FlaskLayerLambdaLayerHash",
+        "OutputValue": "d0dac8a254fbfa9904832d378ebda16bdb75d32e",
+        "Description": "Current Lambda layer hash",
+        "ExportName": "sls-final-daily-schdule-mail-dev-FlaskLayerLambdaLayerHash"
+      },
+      {
+        "OutputKey": "PythonRequirementsLambdaLayerS3Key",
+        "OutputValue": "serverless/final-daily-schdule-mail/dev/1769282179719-2026-01-24T19:16:19.719Z/pythonRequirements.zip",
+        "Description": "Current Lambda layer S3Key",
+        "ExportName": "sls-final-daily-schdule-mail-dev-PythonRequirementsLambdaLayerS3Key"
+      },
+      {
+        "OutputKey": "FlaskLayerLambdaLayerQualifiedArn",
+        "OutputValue": "arn:aws:lambda:ap-south-1:952389988652:layer:flask-layer:5",
+        "Description": "Current Lambda layer version",
+        "ExportName": "sls-final-daily-schdule-mail-dev-FlaskLayerLambdaLayerQualifiedArn"
+      },
+      {
+        "OutputKey": "CommonLayerLambdaLayerQualifiedArn",
+        "OutputValue": "arn:aws:lambda:ap-south-1:952389988652:layer:common-layer:4",
+        "Description": "Current Lambda layer version",
+        "ExportName": "sls-final-daily-schdule-mail-dev-CommonLayerLambdaLayerQualifiedArn"
+      },
+      {
+        "OutputKey": "StaticMailerLambdaFunctionQualifiedArn",
+        "OutputValue": "arn:aws:lambda:ap-south-1:952389988652:function:final-daily-schdule-mail-dev-staticMailer:16",
+        "Description": "Current Lambda function version",
+        "ExportName": "sls-final-daily-schdule-mail-dev-StaticMailerLambdaFunctionQualifiedArn"
+      },
+      {
+        "OutputKey": "ApiLambdaFunctionQualifiedArn",
+        "OutputValue": "arn:aws:lambda:ap-south-1:952389988652:function:final-daily-schdule-mail-dev-api:20",
+        "Description": "Current Lambda function version",
+        "ExportName": "sls-final-daily-schdule-mail-dev-ApiLambdaFunctionQualifiedArn"
+      },
+      {
+        "OutputKey": "CommonLayerLambdaLayerS3Key",
+        "OutputValue": "serverless/final-daily-schdule-mail/dev/1769282179719-2026-01-24T19:16:19.719Z/CommonLayer.zip",
+        "Description": "Current Lambda layer S3Key",
+        "ExportName": "sls-final-daily-schdule-mail-dev-CommonLayerLambdaLayerS3Key"
+      },
+      {
+        "OutputKey": "PythonRequirementsLambdaLayerHash",
+        "OutputValue": "4509fbadbb90616c4f310961221ef9e20ea4b5ca",
+        "Description": "Current Lambda layer hash",
+        "ExportName": "sls-final-daily-schdule-mail-dev-PythonRequirementsLambdaLayerHash"
+      },
+      {
+        "OutputKey": "FlaskLayerLambdaLayerS3Key",
+        "OutputValue": "serverless/final-daily-schdule-mail/dev/1769282179719-2026-01-24T19:16:19.719Z/FlaskLayer.zip",
+        "Description": "Current Lambda layer S3Key",
+        "ExportName": "sls-final-daily-schdule-mail-dev-FlaskLayerLambdaLayerS3Key"
+      },
+      {
+        "OutputKey": "ServiceEndpoint",
+        "OutputValue": "https://byclh6knwl.execute-api.ap-south-1.amazonaws.com/dev",
+        "Description": "URL of the service endpoint",
+        "ExportName": "sls-final-daily-schdule-mail-dev-ServiceEndpoint"
+      }
+    ],
+    "compiledCloudFormationTemplate": {
+      "AWSTemplateFormatVersion": "2010-09-09",
+      "Description": "The AWS CloudFormation template for this Serverless application",
+      "Resources": {
+        "ApiLogGroup": {
+          "Type": "AWS::Logs::LogGroup",
+          "Properties": {
+            "LogGroupName": "/aws/lambda/final-daily-schdule-mail-dev-api"
+          }
+        },
+        "StaticMailerLogGroup": {
+          "Type": "AWS::Logs::LogGroup",
+          "Properties": {
+            "LogGroupName": "/aws/lambda/final-daily-schdule-mail-dev-staticMailer"
+          }
+        },
+        "IamRoleLambdaExecution": {
+          "Type": "AWS::IAM::Role",
+          "Properties": {
+            "AssumeRolePolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Principal": {
+                    "Service": [
+                      "lambda.amazonaws.com"
+                    ]
+                  },
+                  "Action": [
+                    "sts:AssumeRole"
+                  ]
+                }
+              ]
+            },
+            "Policies": [
+              {
+                "PolicyName": {
+                  "Fn::Join": [
+                    "-",
+                    [
+                      "final-daily-schdule-mail",
+                      "dev",
+                      "lambda"
+                    ]
+                  ]
+                },
+                "PolicyDocument": {
+                  "Version": "2012-10-17",
+                  "Statement": [
+                    {
+                      "Effect": "Allow",
+                      "Action": [
+                        "logs:CreateLogStream",
+                        "logs:CreateLogGroup",
+                        "logs:TagResource"
+                      ],
+                      "Resource": [
+                        {
+                          "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/final-daily-schdule-mail-dev*:*"
+                        }
+                      ]
+                    },
+                    {
+                      "Effect": "Allow",
+                      "Action": [
+                        "logs:PutLogEvents"
+                      ],
+                      "Resource": [
+                        {
+                          "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/final-daily-schdule-mail-dev*:*:*"
+                        }
+                      ]
+                    },
+                    {
+                      "Effect": "Allow",
+                      "Action": [
+                        "SNS:Publish"
+                      ],
+                      "Resource": {
+                        "Ref": "QuotesMessages"
+                      }
+                    },
+                    {
+                      "Effect": "Allow",
+                      "Action": [
+                        "s3:*"
+                      ],
+                      "Resource": "*"
+                    },
+                    {
+                      "Effect": "Allow",
+                      "Action": [
+                        "dynamodb:Query",
+                        "dynamodb:Scan",
+                        "dynamodb:GetItem",
+                        "dynamodb:PutItem",
+                        "dynamodb:UpdateItem",
+                        "dynamodb:DeleteItem"
+                      ],
+                      "Resource": [
+                        {
+                          "Fn::GetAtt": [
+                            "UsersTable",
+                            "Arn"
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            ],
+            "Path": "/",
+            "RoleName": {
+              "Fn::Join": [
+                "-",
+                [
+                  "final-daily-schdule-mail",
+                  "dev",
+                  {
+                    "Ref": "AWS::Region"
+                  },
+                  "lambdaRole"
+                ]
+              ]
+            }
+          }
+        },
+        "PythonRequirementsLambdaLayer": {
+          "Type": "AWS::Lambda::LayerVersion",
+          "Properties": {
+            "Content": {
+              "S3Bucket": "serverless-framework-deployments-ap-south-1-e05e9ce5-5b85",
+              "S3Key": "serverless/final-daily-schdule-mail/dev/1769282179719-2026-01-24T19:16:19.719Z/pythonRequirements.zip"
+            },
+            "LayerName": "final-daily-schdule-mail-dev-python-requirements",
+            "Description": "Python requirements generated by serverless-python-requirements.",
+            "CompatibleRuntimes": [
+              "python3.12"
+            ]
+          }
+        },
+        "CommonLayerLambdaLayer": {
+          "Type": "AWS::Lambda::LayerVersion",
+          "Properties": {
+            "Content": {
+              "S3Bucket": "serverless-framework-deployments-ap-south-1-e05e9ce5-5b85",
+              "S3Key": "serverless/final-daily-schdule-mail/dev/1769282179719-2026-01-24T19:16:19.719Z/CommonLayer.zip"
+            },
+            "LayerName": "common-layer",
+            "Description": "Common utilities (requests, etc.)",
+            "CompatibleRuntimes": [
+              "python3.12"
+            ]
+          }
+        },
+        "FlaskLayerLambdaLayer": {
+          "Type": "AWS::Lambda::LayerVersion",
+          "Properties": {
+            "Content": {
+              "S3Bucket": "serverless-framework-deployments-ap-south-1-e05e9ce5-5b85",
+              "S3Key": "serverless/final-daily-schdule-mail/dev/1769282179719-2026-01-24T19:16:19.719Z/FlaskLayer.zip"
+            },
+            "LayerName": "flask-layer",
+            "Description": "Flask + Werkzeug + awsgi",
+            "CompatibleRuntimes": [
+              "python3.12"
+            ]
+          }
+        },
+        "ApiLambdaFunction": {
+          "Type": "AWS::Lambda::Function",
+          "Properties": {
+            "Code": {
+              "S3Bucket": "serverless-framework-deployments-ap-south-1-e05e9ce5-5b85",
+              "S3Key": "serverless/final-daily-schdule-mail/dev/1769282927316-2026-01-24T19:28:47.316Z/final-daily-schdule-mail.zip"
+            },
+            "Handler": "wsgi_handler.handler",
+            "Runtime": "python3.12",
+            "FunctionName": "final-daily-schdule-mail-dev-api",
+            "MemorySize": 1024,
+            "Timeout": 6,
+            "Environment": {
+              "Variables": {
+                "USERS_TABLE": "users-table-dev",
+                "REGION": "ap-south-1",
+                "SNS_TOPIC_ARN": "arn:aws:sns:ap-south-1:952389988652:quotes-messages-dev"
+              }
+            },
+            "Role": {
+              "Fn::GetAtt": [
+                "IamRoleLambdaExecution",
+                "Arn"
+              ]
+            },
+            "Layers": [
+              {
+                "Ref": "FlaskLayerLambdaLayer"
+              },
+              {
+                "Ref": "CommonLayerLambdaLayer"
+              }
+            ]
+          },
+          "DependsOn": [
+            "ApiLogGroup"
+          ]
+        },
+        "StaticMailerLambdaFunction": {
+          "Type": "AWS::Lambda::Function",
+          "Properties": {
+            "Code": {
+              "S3Bucket": "serverless-framework-deployments-ap-south-1-e05e9ce5-5b85",
+              "S3Key": "serverless/final-daily-schdule-mail/dev/1769282927316-2026-01-24T19:28:47.316Z/final-daily-schdule-mail.zip"
+            },
+            "Handler": "static_mailer.static_mailer",
+            "Runtime": "python3.12",
+            "FunctionName": "final-daily-schdule-mail-dev-staticMailer",
+            "MemorySize": 1024,
+            "Timeout": 6,
+            "Environment": {
+              "Variables": {
+                "USERS_TABLE": "users-table-dev",
+                "REGION": "ap-south-1",
+                "SNS_TOPIC_ARN": "arn:aws:sns:ap-south-1:952389988652:quotes-messages-dev"
+              }
+            },
+            "Role": {
+              "Fn::GetAtt": [
+                "IamRoleLambdaExecution",
+                "Arn"
+              ]
+            },
+            "Layers": [
+              {
+                "Ref": "CommonLayerLambdaLayer"
+              }
+            ]
+          },
+          "DependsOn": [
+            "StaticMailerLogGroup"
+          ]
+        },
+        "StaticMailerLambdaVersionPWWfzErPE0KmVsSFz0DTb2b9Ak0z9YTxryDK6Rl5lI": {
+          "Type": "AWS::Lambda::Version",
+          "DeletionPolicy": "Retain",
+          "Properties": {
+            "FunctionName": {
+              "Ref": "StaticMailerLambdaFunction"
+            },
+            "CodeSha256": "w5UTNCYXMGqA1RUomTXqIgEMwPLD5OsI8WvSxdPbYYs="
+          }
+        },
+        "ApiLambdaVersionXEGgs0SRwVugrXMa0zIkDm3IL5UYav5k52rb3eQcyk": {
+          "Type": "AWS::Lambda::Version",
+          "DeletionPolicy": "Retain",
+          "Properties": {
+            "FunctionName": {
+              "Ref": "ApiLambdaFunction"
+            },
+            "CodeSha256": "w5UTNCYXMGqA1RUomTXqIgEMwPLD5OsI8WvSxdPbYYs="
+          }
+        },
+        "ApiGatewayRestApi": {
+          "Type": "AWS::ApiGateway::RestApi",
+          "Properties": {
+            "Name": "dev-final-daily-schdule-mail",
+            "EndpointConfiguration": {
+              "Types": [
+                "EDGE"
+              ]
+            },
+            "Policy": ""
+          }
+        },
+        "ApiGatewayResourceProxyVar": {
+          "Type": "AWS::ApiGateway::Resource",
+          "Properties": {
+            "ParentId": {
+              "Fn::GetAtt": [
+                "ApiGatewayRestApi",
+                "RootResourceId"
+              ]
+            },
+            "PathPart": "{proxy+}",
+            "RestApiId": {
+              "Ref": "ApiGatewayRestApi"
+            }
+          }
+        },
+        "ApiGatewayResourceMailer": {
+          "Type": "AWS::ApiGateway::Resource",
+          "Properties": {
+            "ParentId": {
+              "Fn::GetAtt": [
+                "ApiGatewayRestApi",
+                "RootResourceId"
+              ]
+            },
+            "PathPart": "mailer",
+            "RestApiId": {
+              "Ref": "ApiGatewayRestApi"
+            }
+          }
+        },
+        "ApiGatewayMethodMailerOptions": {
+          "Type": "AWS::ApiGateway::Method",
+          "Properties": {
+            "AuthorizationType": "NONE",
+            "HttpMethod": "OPTIONS",
+            "MethodResponses": [
+              {
+                "StatusCode": "200",
+                "ResponseParameters": {
+                  "method.response.header.Access-Control-Allow-Origin": true,
+                  "method.response.header.Access-Control-Allow-Headers": true,
+                  "method.response.header.Access-Control-Allow-Methods": true
+                },
+                "ResponseModels": {}
+              }
+            ],
+            "RequestParameters": {},
+            "Integration": {
+              "Type": "MOCK",
+              "RequestTemplates": {
+                "application/json": "{statusCode:200}"
+              },
+              "ContentHandling": "CONVERT_TO_TEXT",
+              "IntegrationResponses": [
+                {
+                  "StatusCode": "200",
+                  "ResponseParameters": {
+                    "method.response.header.Access-Control-Allow-Origin": "'*'",
+                    "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,X-Amzn-Trace-Id'",
+                    "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,POST'"
+                  },
+                  "ResponseTemplates": {
+                    "application/json": ""
+                  }
+                }
+              ]
+            },
+            "ResourceId": {
+              "Ref": "ApiGatewayResourceMailer"
+            },
+            "RestApiId": {
+              "Ref": "ApiGatewayRestApi"
+            }
+          }
+        },
+        "ApiGatewayMethodAny": {
+          "Type": "AWS::ApiGateway::Method",
+          "Properties": {
+            "HttpMethod": "ANY",
+            "RequestParameters": {},
+            "ResourceId": {
+              "Fn::GetAtt": [
+                "ApiGatewayRestApi",
+                "RootResourceId"
+              ]
+            },
+            "RestApiId": {
+              "Ref": "ApiGatewayRestApi"
+            },
+            "ApiKeyRequired": "<REDACTED>",
+            "AuthorizationType": "NONE",
+            "Integration": {
+              "IntegrationHttpMethod": "POST",
+              "Type": "AWS_PROXY",
+              "Uri": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":apigateway:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":lambda:path/2015-03-31/functions/",
+                    {
+                      "Fn::GetAtt": [
+                        "ApiLambdaFunction",
+                        "Arn"
+                      ]
+                    },
+                    "/invocations"
+                  ]
+                ]
+              }
+            },
+            "MethodResponses": []
+          },
+          "DependsOn": [
+            "ApiLambdaPermissionApiGateway"
+          ]
+        },
+        "ApiGatewayMethodProxyVarAny": {
+          "Type": "AWS::ApiGateway::Method",
+          "Properties": {
+            "HttpMethod": "ANY",
+            "RequestParameters": {},
+            "ResourceId": {
+              "Ref": "ApiGatewayResourceProxyVar"
+            },
+            "RestApiId": {
+              "Ref": "ApiGatewayRestApi"
+            },
+            "ApiKeyRequired": "<REDACTED>",
+            "AuthorizationType": "NONE",
+            "Integration": {
+              "IntegrationHttpMethod": "POST",
+              "Type": "AWS_PROXY",
+              "Uri": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":apigateway:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":lambda:path/2015-03-31/functions/",
+                    {
+                      "Fn::GetAtt": [
+                        "ApiLambdaFunction",
+                        "Arn"
+                      ]
+                    },
+                    "/invocations"
+                  ]
+                ]
+              }
+            },
+            "MethodResponses": []
+          },
+          "DependsOn": [
+            "ApiLambdaPermissionApiGateway"
+          ]
+        },
+        "ApiGatewayMethodMailerPost": {
+          "Type": "AWS::ApiGateway::Method",
+          "Properties": {
+            "HttpMethod": "POST",
+            "RequestParameters": {},
+            "ResourceId": {
+              "Ref": "ApiGatewayResourceMailer"
+            },
+            "RestApiId": {
+              "Ref": "ApiGatewayRestApi"
+            },
+            "ApiKeyRequired": "<REDACTED>",
+            "AuthorizationType": "NONE",
+            "Integration": {
+              "IntegrationHttpMethod": "POST",
+              "Type": "AWS_PROXY",
+              "Uri": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":apigateway:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":lambda:path/2015-03-31/functions/",
+                    {
+                      "Fn::GetAtt": [
+                        "StaticMailerLambdaFunction",
+                        "Arn"
+                      ]
+                    },
+                    "/invocations"
+                  ]
+                ]
+              }
+            },
+            "MethodResponses": []
+          },
+          "DependsOn": [
+            "StaticMailerLambdaPermissionApiGateway"
+          ]
+        },
+        "ApiGatewayDeployment1769282917527": {
+          "Type": "AWS::ApiGateway::Deployment",
+          "Properties": {
+            "RestApiId": {
+              "Ref": "ApiGatewayRestApi"
+            },
+            "StageName": "dev"
+          },
+          "DependsOn": [
+            "ApiGatewayMethodMailerOptions",
+            "ApiGatewayMethodAny",
+            "ApiGatewayMethodProxyVarAny",
+            "ApiGatewayMethodMailerPost"
+          ]
+        },
+        "ApiLambdaPermissionApiGateway": {
+          "Type": "AWS::Lambda::Permission",
+          "Properties": {
+            "FunctionName": {
+              "Fn::GetAtt": [
+                "ApiLambdaFunction",
+                "Arn"
+              ]
+            },
+            "Action": "lambda:InvokeFunction",
+            "Principal": "apigateway.amazonaws.com",
+            "SourceArn": {
+              "Fn::Join": [
+                "",
+                [
+                  "arn:",
+                  {
+                    "Ref": "AWS::Partition"
+                  },
+                  ":execute-api:",
+                  {
+                    "Ref": "AWS::Region"
+                  },
+                  ":",
+                  {
+                    "Ref": "AWS::AccountId"
+                  },
+                  ":",
+                  {
+                    "Ref": "ApiGatewayRestApi"
+                  },
+                  "/*/*"
+                ]
+              ]
+            }
+          }
+        },
+        "StaticMailerLambdaPermissionApiGateway": {
+          "Type": "AWS::Lambda::Permission",
+          "Properties": {
+            "FunctionName": {
+              "Fn::GetAtt": [
+                "StaticMailerLambdaFunction",
+                "Arn"
+              ]
+            },
+            "Action": "lambda:InvokeFunction",
+            "Principal": "apigateway.amazonaws.com",
+            "SourceArn": {
+              "Fn::Join": [
+                "",
+                [
+                  "arn:",
+                  {
+                    "Ref": "AWS::Partition"
+                  },
+                  ":execute-api:",
+                  {
+                    "Ref": "AWS::Region"
+                  },
+                  ":",
+                  {
+                    "Ref": "AWS::AccountId"
+                  },
+                  ":",
+                  {
+                    "Ref": "ApiGatewayRestApi"
+                  },
+                  "/*/*"
+                ]
+              ]
+            }
+          }
+        },
+        "QuotesMessages": {
+          "Type": "AWS::SNS::Topic",
+          "Properties": {
+            "TopicName": "quotes-messages-dev"
+          }
+        },
+        "QuotesMessagesSubscription": {
+          "Type": "AWS::SNS::Subscription",
+          "Properties": {
+            "TopicArn": {
+              "Ref": "QuotesMessages"
+            },
+            "Protocol": "email",
+            "Endpoint": "bariksoumyadipwork@gmail.com",
+            "DeliveryPolicy": {
+              "healthyRetryPolicy": {
+                "numRetries": 20,
+                "minDelayTarget": 30,
+                "maxDelayTarget": 600,
+                "backoffFunction": "exponential"
+              }
+            }
+          }
+        },
+        "UsersTable": {
+          "Type": "AWS::DynamoDB::Table",
+          "Properties": {
+            "AttributeDefinitions": [
+              {
+                "AttributeName": "userId",
+                "AttributeType": "S"
+              }
+            ],
+            "KeySchema": [
+              {
+                "AttributeName": "userId",
+                "KeyType": "HASH"
+              }
+            ],
+            "BillingMode": "PAY_PER_REQUEST",
+            "TableName": "users-table-dev"
+          }
+        }
+      },
+      "Outputs": {
+        "ServerlessDeploymentBucketName": {
+          "Value": "serverless-framework-deployments-ap-south-1-e05e9ce5-5b85",
+          "Export": {
+            "Name": "sls-final-daily-schdule-mail-dev-ServerlessDeploymentBucketName"
+          }
+        },
+        "PythonRequirementsLambdaLayerQualifiedArn": {
+          "Description": "Current Lambda layer version",
+          "Value": {
+            "Ref": "PythonRequirementsLambdaLayer"
+          },
+          "Export": {
+            "Name": "sls-final-daily-schdule-mail-dev-PythonRequirementsLambdaLayerQualifiedArn"
+          }
+        },
+        "PythonRequirementsLambdaLayerHash": {
+          "Description": "Current Lambda layer hash",
+          "Value": "4509fbadbb90616c4f310961221ef9e20ea4b5ca",
+          "Export": {
+            "Name": "sls-final-daily-schdule-mail-dev-PythonRequirementsLambdaLayerHash"
+          }
+        },
+        "PythonRequirementsLambdaLayerS3Key": {
+          "Description": "Current Lambda layer S3Key",
+          "Value": "serverless/final-daily-schdule-mail/dev/1769282179719-2026-01-24T19:16:19.719Z/pythonRequirements.zip",
+          "Export": {
+            "Name": "sls-final-daily-schdule-mail-dev-PythonRequirementsLambdaLayerS3Key"
+          }
+        },
+        "CommonLayerLambdaLayerQualifiedArn": {
+          "Description": "Current Lambda layer version",
+          "Value": {
+            "Ref": "CommonLayerLambdaLayer"
+          },
+          "Export": {
+            "Name": "sls-final-daily-schdule-mail-dev-CommonLayerLambdaLayerQualifiedArn"
+          }
+        },
+        "CommonLayerLambdaLayerHash": {
+          "Description": "Current Lambda layer hash",
+          "Value": "8fad02de34954f846a1deec31b7d723000a7726c",
+          "Export": {
+            "Name": "sls-final-daily-schdule-mail-dev-CommonLayerLambdaLayerHash"
+          }
+        },
+        "CommonLayerLambdaLayerS3Key": {
+          "Description": "Current Lambda layer S3Key",
+          "Value": "serverless/final-daily-schdule-mail/dev/1769282179719-2026-01-24T19:16:19.719Z/CommonLayer.zip",
+          "Export": {
+            "Name": "sls-final-daily-schdule-mail-dev-CommonLayerLambdaLayerS3Key"
+          }
+        },
+        "FlaskLayerLambdaLayerQualifiedArn": {
+          "Description": "Current Lambda layer version",
+          "Value": {
+            "Ref": "FlaskLayerLambdaLayer"
+          },
+          "Export": {
+            "Name": "sls-final-daily-schdule-mail-dev-FlaskLayerLambdaLayerQualifiedArn"
+          }
+        },
+        "FlaskLayerLambdaLayerHash": {
+          "Description": "Current Lambda layer hash",
+          "Value": "d0dac8a254fbfa9904832d378ebda16bdb75d32e",
+          "Export": {
+            "Name": "sls-final-daily-schdule-mail-dev-FlaskLayerLambdaLayerHash"
+          }
+        },
+        "FlaskLayerLambdaLayerS3Key": {
+          "Description": "Current Lambda layer S3Key",
+          "Value": "serverless/final-daily-schdule-mail/dev/1769282179719-2026-01-24T19:16:19.719Z/FlaskLayer.zip",
+          "Export": {
+            "Name": "sls-final-daily-schdule-mail-dev-FlaskLayerLambdaLayerS3Key"
+          }
+        },
+        "StaticMailerLambdaFunctionQualifiedArn": {
+          "Description": "Current Lambda function version",
+          "Value": {
+            "Ref": "StaticMailerLambdaVersionPWWfzErPE0KmVsSFz0DTb2b9Ak0z9YTxryDK6Rl5lI"
+          },
+          "Export": {
+            "Name": "sls-final-daily-schdule-mail-dev-StaticMailerLambdaFunctionQualifiedArn"
+          }
+        },
+        "ApiLambdaFunctionQualifiedArn": {
+          "Description": "Current Lambda function version",
+          "Value": {
+            "Ref": "ApiLambdaVersionXEGgs0SRwVugrXMa0zIkDm3IL5UYav5k52rb3eQcyk"
+          },
+          "Export": {
+            "Name": "sls-final-daily-schdule-mail-dev-ApiLambdaFunctionQualifiedArn"
+          }
+        },
+        "ServiceEndpoint": {
+          "Description": "URL of the service endpoint",
+          "Value": {
+            "Fn::Join": [
+              "",
+              [
+                "https://",
+                {
+                  "Ref": "ApiGatewayRestApi"
+                },
+                ".execute-api.",
+                {
+                  "Ref": "AWS::Region"
+                },
+                ".",
+                {
+                  "Ref": "AWS::URLSuffix"
+                },
+                "/dev"
+              ]
+            ]
+          },
+          "Export": {
+            "Name": "sls-final-daily-schdule-mail-dev-ServiceEndpoint"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,20 @@
+# "org" ensures this Service is used with the correct Serverless Framework Access Key.
+org: soumya1998
+# "service" is the name of this project. This will also be added to your AWS resource names.
+service: PYTHON-EXAMPLE-VPC
+
+frameworkVersion: '4'
+
+provider:
+  name: aws
+  runtime: python3.12
+  vpc:
+    securityGroupIds:
+      - sg-080423ce5d6002932
+    subnetIds:
+      - subnet-073ae68dbbbb04df4
+      - subnet-02fcbe267466b6bea
+
+functions:
+  hello:
+    handler: handler.hello

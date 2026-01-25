@@ -1,0 +1,149 @@
+org: soumya1998
+app: serverless-app-main
+service: final-daily-schdule-mail
+
+stages:
+  default:
+    params:
+      tableName: "users-table-${sls:stage}"
+
+plugins:
+  - serverless-wsgi
+  - serverless-python-requirements
+
+custom:
+  tableName: "users-table-${sls:stage}"
+  wsgi:
+    app: app.app
+  pythonRequirements:
+    dockerizePip: true
+    slim: true
+    zip: true
+    layer: true
+
+provider:
+  name: aws
+  runtime: python3.12
+  region: ap-south-1
+  stage: dev
+  httpApi:
+    cors:
+      allowedOrigins:
+        - "http://localhost:3000"
+      allowedHeaders:
+        - Content-Type
+      allowedMethods:
+        - GET
+        - POST
+        - OPTIONS
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action: SNS:Publish
+          Resource: !Ref QuotesMessages
+        - Effect: Allow
+          Action: "s3:*"
+          Resource: "*"
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+          Resource:
+            - Fn::GetAtt: [ UsersTable, Arn ]
+  environment:
+    USERS_TABLE: ${param:tableName}
+    REGION: ${self:provider.region}
+    SNS_TOPIC_ARN: arn:aws:sns:ap-south-1:952389988652:quotes-messages-dev
+
+functions:
+  api:
+    handler: wsgi_handler.handler
+    layers:
+      - { Ref: FlaskLayerLambdaLayer }    # needs Flask
+      - { Ref: CommonLayerLambdaLayer }   # also needs common
+    events:
+      - http:
+          path: /
+          method: ANY
+      - http:
+          path: /{proxy+}
+          method: ANY
+
+  staticMailer:
+    handler: static_mailer.static_mailer
+    layers:
+      - { Ref: CommonLayerLambdaLayer }   # only needs common
+    events:
+      - http:
+          path: mailer
+          method: post
+          cors: true
+
+resources:
+  Resources:
+  #SNS
+    QuotesMessages:
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: quotes-messages-${self:provider.stage}
+    QuotesMessagesSubscription:
+      Type: AWS::SNS::Subscription
+      Properties:
+        TopicArn: !Ref QuotesMessages
+        Protocol: email
+        Endpoint: bariksoumyadipwork@gmail.com
+        DeliveryPolicy: 
+          healthyRetryPolicy:
+            numRetries: 20
+            minDelayTarget: 30
+            maxDelayTarget: 600
+            backoffFunction: exponential
+
+
+
+    UsersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: userId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: userId
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+        TableName: ${self:custom.tableName}
+
+layers:
+  CommonLayer:
+    path: layer/python/common
+    name: common-layer
+    description: "Common utilities (requests, etc.)"
+    compatibleRuntimes:
+      - python3.12
+
+  FlaskLayer:
+    path: layer/python/flask
+    name: flask-layer
+    description: "Flask + Werkzeug + awsgi"
+    compatibleRuntimes:
+      - python3.12
+
+package:
+  exclude:
+    - front-end/**
+    - .vscode/**
+    - .serverless/**
+    - .venv/**
+    - __pycache__/**
+    - node_modules/**
+    - .git/**
+    - .next/**
+    - tests/**
+    - README.md
+    - package-lock.json
+    - quotes.json

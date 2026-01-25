@@ -1,0 +1,77 @@
+# "org" ensures this Service is used with the correct Serverless Framework Access Key.
+org: soumya1998
+# "app" enables Serverless Framework Dashboard features and sharing them with other Services.
+app: serverless-app-main
+# "service" is the name of this project. This will also be added to your AWS resource names.
+service: final-aws-flask-todo
+
+stages:
+  default:
+    params:
+      tableName: todos-table-${sls:stage}
+
+plugins:
+  - serverless-wsgi
+  - serverless-python-requirements
+
+
+provider:
+  name: aws
+  runtime: python3.12
+  region: ap-south-1
+  # Uncomment to easily set up a custom domain. Read the docs for more details:
+  # https://www.serverless.com/framework/docs/providers/aws/guide/domains
+  # domain: api.example.com
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+          Resource:
+            - Fn::GetAtt: [ TodosTable, Arn ]
+  environment:
+    TODO_TABLE: ${param:tableName}
+    REGION_NAME: ${self:provider.region}
+
+
+functions:
+  api:
+    handler: wsgi_handler.handler
+
+    timeout: 10
+    memorySize: 512
+    events:
+      - httpApi:
+          method: ANY
+          path: /{proxy+}
+      - httpApi:
+          method: ANY
+          path: /
+
+resources:
+  Resources:
+    TodosTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        TableName: ${param:tableName}
+
+custom:
+  pythonRequirements:
+    dockerizePip: true
+  wsgi:
+    app: app.app   # file: app.py, Flask instance: app

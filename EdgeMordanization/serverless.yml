@@ -1,0 +1,119 @@
+# "org" ensures this Service is used with the correct Serverless Framework Access Key.
+org: soumya1998
+# "app" enables Serverless Framework Dashboard features and sharing them with other Services.
+app: serverless-app-main
+# "service" is the name of this project. This will also be added to your AWS resource names.
+service: EdgeMordanization
+
+provider:
+  name: aws
+  runtime: python3.12
+  timeout: 10
+  memorySize: 128
+  # Uncomment to easily set up a custom domain. Read the docs for more details:
+  # https://www.serverless.com/framework/docs/providers/aws/guide/domains
+  # domain: api.example.com
+  region: ap-south-1
+  stage: dev
+  environment:
+    USERS_TABLE: ${self:service}-users
+    INCIDENT_TABLE: ${self:service}-inc-tickets
+    SERVICE_TABLE: ${self:service}-sr-tickets
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+          Resource:
+            - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.USERS_TABLE}"
+            - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.INCIDENT_TABLE}"
+            - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.SERVICE_TABLE}"
+
+plugins:
+  - serverless-step-functions
+  - serverless-offline
+
+functions:
+  checkUser:
+    handler: handler.check_user
+  processTicket:
+    handler: handler.process_ticket
+
+stepFunctions:
+  stateMachines:
+    TicketFlow:
+      events:
+        - http:
+            path: tickets
+            method: post
+      definition:
+        StartAt: CheckUserAvailability
+        States:
+          CheckUserAvailability:
+            Type: Task
+            Resource:
+              Fn::GetAtt: [checkUser, Arn]
+            Next: IsUserAvailable
+          
+          IsUserAvailable:
+            Type: Choice
+            Choices:
+              - Variable: "$.userFound"
+                BooleanEquals: true
+                Next: ProcessTicket
+            Default: UserNotFound
+
+          ProcessTicket:
+            Type: Task
+            Resource:
+              Fn::GetAtt: [processTicket, Arn]
+            End: true
+
+          UserNotFound:
+            Type: Fail
+            Error: "UserDoesNotExist"
+            Cause: "The provided user ID was not found in the database."
+
+resources:
+  Resources:
+    UsersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.USERS_TABLE}
+        AttributeDefinitions:
+          - AttributeName: userId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: userId
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+    
+    IncidentTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.INCIDENT_TABLE}
+        AttributeDefinitions:
+          - AttributeName: ticketId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: ticketId
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+
+    StandardTicketsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.SERVICE_TABLE}
+        AttributeDefinitions:
+          - AttributeName: ticketId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: ticketId
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1

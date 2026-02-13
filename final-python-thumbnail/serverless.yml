@@ -101,3 +101,4 @@ resources:
 
 plugins:
   - serverless-python-requirements
+  - serverless-offline

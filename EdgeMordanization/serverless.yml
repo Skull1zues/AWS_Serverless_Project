@@ -1,8 +1,5 @@
-# "org" ensures this Service is used with the correct Serverless Framework Access Key.
 org: soumya1998
-# "app" enables Serverless Framework Dashboard features and sharing them with other Services.
 app: serverless-app-main
-# "service" is the name of this project. This will also be added to your AWS resource names.
 service: EdgeMordanization
 
 provider:
@@ -10,15 +7,12 @@ provider:
   runtime: python3.12
   timeout: 10
   memorySize: 128
-  # Uncomment to easily set up a custom domain. Read the docs for more details:
-  # https://www.serverless.com/framework/docs/providers/aws/guide/domains
-  # domain: api.example.com
   region: ap-south-1
   stage: dev
   environment:
-    USERS_TABLE: ${self:service}-users
-    INCIDENT_TABLE: ${self:service}-inc-tickets
-    SERVICE_TABLE: ${self:service}-sr-tickets
+    USERS_TABLE: ${self:service}-users-${self:provider.stage}
+    INCIDENT_TABLE: ${self:service}-inc-tickets-${self:provider.stage}
+    SERVICE_TABLE: ${self:service}-sr-tickets-${self:provider.stage}
   iam:
     role:
       statements:
@@ -27,9 +21,16 @@ provider:
             - dynamodb:GetItem
             - dynamodb:PutItem
           Resource:
-            - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.USERS_TABLE}"
-            - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.INCIDENT_TABLE}"
-            - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.SERVICE_TABLE}"
+            - "arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:provider.environment.USERS_TABLE}"
+            - "arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:provider.environment.INCIDENT_TABLE}"
+            - "arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:provider.environment.SERVICE_TABLE}"
+        - Effect: Allow
+          Action:
+            - states:StartExecution
+            - states:StartSyncExecution
+            - states:DescribeExecution
+          Resource:
+            - "arn:aws:states:${self:provider.region}:${aws:accountId}:stateMachine:TicketManagementFlow-${self:provider.stage}"
 
 plugins:
   - serverless-step-functions
@@ -40,21 +41,80 @@ functions:
     handler: handler.check_user
   processTicket:
     handler: handler.process_ticket
+  getResponse:
+    handler: handler.get_response
+    events:
+      - http:
+          path: response
+          method: post
 
 stepFunctions:
   stateMachines:
     TicketFlow:
+      type: EXPRESS
+      loggingConfig:
+        level: ALL
+        includeExecutionData: true
+        destinations:
+          - Fn::GetAtt: [TicketFlowLogGroupCloudWatch, Arn]
       events:
         - http:
             path: tickets
             method: post
+            action: StartExecution
+            request: 
+              template:
+                application/json: |
+                  #set( $body = $util.escapeJavaScript($input.json('$')) )
+                  {
+                    "input": "$body",
+                    "stateMachineArn": "arn:aws:states:${self:provider.region}:${aws:accountId}:stateMachine:TicketManagementFlow-${self:provider.stage}"
+                  }
+        - http:
+            path: tickets/response
+            method: post
+            action: StartSyncExecution
+            
+            # --- THIS SECTION WAS MISSING ---
+            request: 
+              template:
+                application/json: |
+                  #set( $body = $util.escapeJavaScript($input.json('$')) )
+                  {
+                    "input": "$body",
+                    "stateMachineArn": "arn:aws:states:${self:provider.region}:${aws:accountId}:stateMachine:TicketManagementFlow-${self:provider.stage}"
+                  }
+            # --------------------------------
+            
+            response:
+              headers:
+                Content-Type: "'application/json'"
+              template:
+                application/json: |
+                  #set($root = $input.path('$'))
+                  
+                  #if($root.status == 'SUCCEEDED')
+                    #if($root.output)
+                      $root.output
+                    #else
+                      {}
+                    #end
+                  #else
+                    #set($context.responseOverride.status = 500)
+                    {
+                      "error": "$root.error",
+                      "cause": "$root.cause",
+                      "status": "$root.status"
+                    }
+                  #end
+      name: TicketManagementFlow-${self:provider.stage}
       definition:
         StartAt: CheckUserAvailability
         States:
           CheckUserAvailability:
             Type: Task
             Resource:
-              Fn::GetAtt: [checkUser, Arn]
+              Fn::GetAtt: [CheckUserLambdaFunction, Arn]
             Next: IsUserAvailable
           
           IsUserAvailable:
@@ -68,7 +128,7 @@ stepFunctions:
           ProcessTicket:
             Type: Task
             Resource:
-              Fn::GetAtt: [processTicket, Arn]
+              Fn::GetAtt: [ProcessTicketLambdaFunction, Arn]
             End: true
 
           UserNotFound:
@@ -117,3 +177,9 @@ resources:
         ProvisionedThroughput:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
+
+    TicketFlowLogGroupCloudWatch:
+      Type: AWS::Logs::LogGroup
+      Properties:
+        LogGroupName: /aws/vendedlogs/states/TicketFlowLogGroupMain-${self:provider.stage}
+        RetentionInDays: 14

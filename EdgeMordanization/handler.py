@@ -4,6 +4,8 @@ import boto3
 from datetime import datetime
 
 dynamodb = boto3.resource('dynamodb')
+step_function = boto3.client('stepfunctions')
+
 
 def check_user(event, context):
     """
@@ -79,3 +81,31 @@ def process_ticket(event, context):
     except Exception as e:
         print(f"Error processing ticket: {e}")
         raise e
+    
+def get_response(event, context):
+    """ To get response from async step function execution  """
+    body = event.get("body")
+    print(f"Event received: {event}")
+    print(f"Body received: {body}")
+    if body:
+        body = json.loads(body)  # parse string into dict
+    else:
+        body = event
+
+    execution_arn = body.get("executionArn")
+    print(f"Execution ARN: {execution_arn}")
+
+    if not execution_arn:
+        raise ValueError("executionArn is required in the input")   
+    response = step_function.describe_execution(executionArn=execution_arn)
+    print(f"Step Function response: {response}")
+    result = {
+        'status': response['status'],
+        'output': json.loads(response['output']) if 'output' in response else None
+    }
+
+    return {
+        "statusCode": 200,
+        "body": json.dumps(result)
+    }
+

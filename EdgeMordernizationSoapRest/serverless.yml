@@ -1,0 +1,244 @@
+# "org" ensures this Service is used with the correct Serverless Framework Access Key.
+org: soumya1998
+# "app" enables Serverless Framework Dashboard features and sharing them with other Services.
+app: serverless-app-main
+# "service" is the name of this project. This will also be added to your AWS resource names.
+service: EdgeMordernizationSoapRest
+
+provider:
+  name: aws
+  runtime: python3.12
+  timeout: 10
+  memorySize: 128
+  region: ap-south-1
+  stage: dev
+  environment:
+    USERS_TABLE: EdgeMordanization-users-${self:provider.stage}
+    INCIDENT_TABLE: EdgeMordanization-inc-tickets-${self:provider.stage}
+    SERVICE_TABLE: EdgeMordanization-sr-tickets-${self:provider.stage}
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+          Resource:
+            - "arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:provider.environment.USERS_TABLE}"
+            - "arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:provider.environment.INCIDENT_TABLE}"
+            - "arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:provider.environment.SERVICE_TABLE}"
+        - Effect: Allow
+          Action:
+            - states:StartSyncExecution #for sync execution
+            - states:DescribeExecution
+          Resource:
+            - "arn:aws:states:${self:provider.region}:${aws:accountId}:stateMachine:TicketManagementFlow-RestSoap-${self:provider.stage}"
+            - "arn:aws:states:${self:provider.region}:${aws:accountId}:execution:TicketManagementFlow-RestSoap-${self:provider.stage}:*"
+
+plugins:
+  - serverless-step-functions
+  - serverless-offline
+  - serverless-python-requirements
+
+custom:
+  pythonRequirements:
+    dockerizePip: non-linux # Highly recommended: ensures packages compile correctly for AWS Linux
+
+functions:
+  ConvertXmlToJson:
+    handler: handler.convert_xml_to_json
+  checkUser:
+    handler: handler.check_user
+  processTicket:
+    handler: handler.process_ticket
+  ConvertJsonToXml:
+    handler: handler.convert_json_to_xml
+
+
+stepFunctions:
+  stateMachines:
+    # Sync execution for SOAP and REST integration to get response in same request
+    TicketFlowSyncSoapRest:
+      type: EXPRESS # Using EXPRESS for faster execution and better integration with API Gateway
+      loggingConfig:
+        level: ALL
+        includeExecutionData: true
+        destinations:
+          - Fn::GetAtt: [TicketFlowLogGroupRestSoapCloudWatch, Arn]
+      events:
+        - http:
+            path: tickets/soaprest #endpoint for both SOAP and REST requests
+            method: post
+            action: StartSyncExecution #for sync execution to get response in same request
+            request: 
+              template:
+              # Request mapping template to pass the entire request body to Step Functions along with content-type
+                application/json: | 
+                  #set($quote = '"')
+                  #set($contentType = $input.params().header.get('Content-Type'))
+                  #set($escapedBody = $util.escapeJavaScript($input.body))
+                  #set($innerJson = "{ ${quote}requestType${quote}: ${quote}${contentType}${quote}, ${quote}input${quote}: ${quote}${escapedBody}${quote} }")
+                  {
+                    "stateMachineArn": "arn:aws:states:${self:provider.region}:${aws:accountId}:stateMachine:TicketManagementFlow-RestSoap-${self:provider.stage}",
+                    "input": "$util.escapeJavaScript($innerJson)"
+                  }
+                application/xml: | 
+                  #set($quote = '"')
+                  #set($contentType = $input.params().header.get('Content-Type'))
+                  #set($escapedBody = $util.escapeJavaScript($input.body))
+                  #set($innerJson = "{ ${quote}requestType${quote}: ${quote}${contentType}${quote}, ${quote}input${quote}: ${quote}${escapedBody}${quote} }")
+                  {
+                    "stateMachineArn": "arn:aws:states:${self:provider.region}:${aws:accountId}:stateMachine:TicketManagementFlow-RestSoap-${self:provider.stage}",
+                    "input": "$util.escapeJavaScript($innerJson)"
+                  }
+
+            # -------------Respose------------------- 
+            response:
+            # Response mapping template to return the output from Step Functions execution back to API Gateway with appropriate content-type and status code
+              # headers:
+              #   Content-Type: "$input.path('$.outputHeaders.Content-Type')"
+              template:
+                application/json: |
+                  #set($root = $input.path('$'))
+                  ## Determine XML vs JSON based on requestType field
+                  #set($wantsXml = true)
+                  #if($root.requestType && $root.requestType.toLowerCase() == "application/json")
+                  #set($wantsXml = false)
+                  #end
+
+                  #if($root.status == 'SUCCEEDED')
+                  ## SUCCESS RESPONSE
+                    #if($wantsXml)
+                      #set($context.responseOverride.header.Content-Type = 'application/xml')
+                      $root.output
+                    #else
+                    #set($context.responseOverride.header.Content-Type = 'application/json')
+                      $root.output
+                    #end
+
+                    #else
+                    ## ERROR RESPONSE
+                      #set($context.responseOverride.status = 500)
+                      #if($wantsXml)
+                        #set($context.responseOverride.header.Content-Type = 'application/xml')
+                        <?xml version="1.0" encoding="utf-8"?>
+                        <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+                          <soapenv:Body>
+                            <response>
+                              <status>Failed</status>
+                              <error>$util.escapeJavaScript($root.error)</error>
+                              <cause>$util.escapeJavaScript($root.cause)</cause>
+                              <requestType>application/xml</requestType>
+                            </response>
+                          </soapenv:Body>
+                        </soapenv:Envelope>
+                      #else
+                        #set($context.responseOverride.header.Content-Type = 'application/json')
+                        {
+                          "error": "$util.escapeJavaScript($root.error)",
+                          "cause": "$util.escapeJavaScript($root.cause)",
+                          "status": "$util.escapeJavaScript($root.status)"
+                        }
+                      #end
+                    #end
+
+                application/xml: |
+                  #set($root = $input.path('$'))
+                  #if($root.status == 'SUCCEEDED')
+                    #set($parsed = $util.parseJson($root.output))
+                    #if($parsed.output)
+                      #set($context.responseOverride.header.Content-Type = 'text/xml')
+                      $parsed.output
+                    #else
+                      #set($context.responseOverride.header.Content-Type = 'application/json')
+                      $root.output
+                    #end
+                  #else
+                    #set($context.responseOverride.status = 500)
+                    <error>
+                      <message>$root.error</message>
+                      <cause>$root.cause</cause>
+                      <status>$root.status</status>
+                    </error>
+                  #end
+      name: TicketManagementFlow-RestSoap-${self:provider.stage}
+      definition:
+        StartAt: DetermineRequestType
+        States:
+          DetermineRequestType: # First state to determine the request type (XML or JSON)
+            Type: Choice
+            Choices:
+              - Variable: "$.requestType"
+                StringMatches: "*xml*"
+                Next: ConvertXmlToJson
+              - Variable: "$.requestType"
+                StringMatches: "*json*"
+                Next: CheckUserAvailability
+            Default: InvalidRequestType
+          ConvertXmlToJson: # State to convert XML request to JSON
+            Type: Task
+            Resource:
+              Fn::GetAtt: [ConvertXmlToJsonLambdaFunction, Arn]
+            Next: CheckUserAvailability
+          CheckUserAvailability: # State to check user availability
+            Type: Task
+            Resource:
+              Fn::GetAtt: [CheckUserLambdaFunction, Arn]
+            Next: IsUserAvailable
+          
+          IsUserAvailable: # State to check if the user is available
+            Type: Choice
+            Choices:
+              - Variable: "$.userFound"
+                BooleanEquals: true
+                Next: ProcessTicket
+            Default: UserNotFound
+
+          ProcessTicket: # State to process the ticket based on the request
+            Type: Task
+            Resource:
+              Fn::GetAtt: [ProcessTicketLambdaFunction, Arn]
+            Next: DetemineResponseType
+          
+          DetemineResponseType: # State to determine the response type (XML or JSON) based on the request type
+            Type: Choice
+            Choices:
+              - Variable: "$.requestType"
+                StringMatches: "*xml*"
+                Next: ConvertJsonToXml
+              - Variable: "$.requestType"
+                StringMatches: "*json*"
+                Next: EndState
+            Default: TypeMismatchError
+
+          ConvertJsonToXml: # State to convert JSON response back to XML if the request was XML
+            Type: Task
+            Resource:
+              Fn::GetAtt: [ConvertJsonToXmlLambdaFunction, Arn]
+            End: true
+          EndState:
+            Type: Pass
+            End: true
+
+
+          UserNotFound:
+            Type: Fail
+            Error: "UserDoesNotExist"
+            Cause: "The provided user ID was not found in the database."
+          InvalidRequestType:
+            Type: Fail
+            Error: "InvalidRequestType"
+            Cause: "The request type must be either XML or JSON."
+          TypeMismatchError:
+            Type: Fail
+            Error: "TypeMismatch"
+            Cause: "The request and response types do not match."
+          
+resources:
+  Resources:
+    TicketFlowLogGroupRestSoapCloudWatch:
+      Type: AWS::Logs::LogGroup
+      Properties:
+        LogGroupName: /aws/vendedlogs/states/TicketFlowRestSoapLogGroupMain-${self:provider.stage}
+        RetentionInDays: 14
+

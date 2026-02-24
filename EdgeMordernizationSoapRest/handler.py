@@ -17,11 +17,16 @@ def convert_xml_to_json(event, context):
     try:
         xml_string = event.get("input")
         parsed = xmltodict.parse(xml_string)
-        print(f"Parsed XML: {json.dumps(parsed)}")  # Debug log to check parsed content
+        print(f"Parsed XML: {json.dumps(parsed)}")  # Debug log
+        
+        # We must look inside the root <request> tag!
+        root = parsed.get("request", {})
+        
         return {
-            "requestType": "application/xml",
-            "ticketDetails": parsed.get("ticketDetails", {}),
-            "userId": parsed.get("userId")
+            # Added .strip() just to clean up any weird spaces from the headers
+            "requestType": event.get("requestType", "application/xml").strip(), 
+            "ticketDetails": root.get("ticketDetails", {}),
+            "userId": root.get("userId")
         }
     except Exception as e:
         print(f"Error converting XML to JSON: {e}")
@@ -36,7 +41,9 @@ def check_user(event, context):
     users_table = dynamodb.Table(os.environ['USERS_TABLE'])
     
     user_id = event.get('userId')
+
     ticket_details = event.get('ticketDetails')
+    print(f"Checking user: {user_id} with ticket details: {json.dumps(ticket_details)}")  # Debug log
     
     try:
         response = users_table.get_item(Key={'userId': user_id})
@@ -110,11 +117,24 @@ def convert_json_to_xml(event, context):
     Output: XML string
     """
     try:
-        xml_string = xmltodict.unparse({"response": event}, pretty=True)
-        return {
-            "output": xml_string,
-            "outputHeaders": {"Content-Type": "application/xml"}
+        # 1. Remove the headers from the data so they don't get converted into XML tags
+        if "outputHeaders" in event:
+            del event["outputHeaders"]
+            
+        # 2. Wrap the response in a proper SOAP Envelope structure
+        soap_format = {
+            "soapenv:Envelope": {
+                "@xmlns:soapenv": "http://schemas.xmlsoap.org/soap/envelope/",
+                "soapenv:Body": {
+                    "response": event
+                }
+            }
         }
+        
+        # 3. Convert to XML
+        xml_string = xmltodict.unparse(soap_format, pretty=True)
+        
+        return xml_string
     except Exception as e:
         print(f"Error converting JSON to XML: {e}")
         raise e

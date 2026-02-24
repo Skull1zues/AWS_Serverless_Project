@@ -26,11 +26,14 @@ provider:
             - "arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:provider.environment.SERVICE_TABLE}"
         - Effect: Allow
           Action:
-            - states:StartExecution
-            - states:StartSyncExecution
+            - states:StartExecution   #for async execution
+            - states:StartSyncExecution #for sync execution
             - states:DescribeExecution
           Resource:
-            - "arn:aws:states:${self:provider.region}:${aws:accountId}:stateMachine:TicketManagementFlow-${self:provider.stage}"
+            - "arn:aws:states:${self:provider.region}:${aws:accountId}:stateMachine:TicketManagementFlow-Async-${self:provider.stage}"
+            - "arn:aws:states:${self:provider.region}:${aws:accountId}:execution:TicketManagementFlow-Async-${self:provider.stage}:*"
+            - "arn:aws:states:${self:provider.region}:${aws:accountId}:stateMachine:TicketManagementFlow-Sync-${self:provider.stage}"
+            - "arn:aws:states:${self:provider.region}:${aws:accountId}:execution:TicketManagementFlow-Sync-${self:provider.stage}:*"
 
 plugins:
   - serverless-step-functions
@@ -50,8 +53,8 @@ functions:
 
 stepFunctions:
   stateMachines:
-    TicketFlow:
-      type: EXPRESS
+    TicketFlowAsync:
+      type: STANDARD #EXPRESS # Using EXPRESS for faster execution and better integration with API Gateway
       loggingConfig:
         level: ALL
         includeExecutionData: true
@@ -61,31 +64,69 @@ stepFunctions:
         - http:
             path: tickets
             method: post
-            action: StartExecution
-            request: 
+            action: StartExecution #for async execution
+            request:  # Request mapping template to pass the entire request body to Step Functions
               template:
                 application/json: |
                   #set( $body = $util.escapeJavaScript($input.json('$')) )
                   {
                     "input": "$body",
-                    "stateMachineArn": "arn:aws:states:${self:provider.region}:${aws:accountId}:stateMachine:TicketManagementFlow-${self:provider.stage}"
+                    "stateMachineArn": "arn:aws:states:${self:provider.region}:${aws:accountId}:stateMachine:TicketManagementFlow-Async-${self:provider.stage}"
                   }
+        
+      name: TicketManagementFlow-Async-${self:provider.stage}
+      definition:
+        StartAt: CheckUserAvailability
+        States:
+          CheckUserAvailability:
+            Type: Task
+            Resource:
+              Fn::GetAtt: [CheckUserLambdaFunction, Arn]
+            Next: IsUserAvailable
+          
+          IsUserAvailable:
+            Type: Choice
+            Choices:
+              - Variable: "$.userFound"
+                BooleanEquals: true
+                Next: ProcessTicket
+            Default: UserNotFound
+
+          ProcessTicket:
+            Type: Task
+            Resource:
+              Fn::GetAtt: [ProcessTicketLambdaFunction, Arn]
+            End: true
+
+          UserNotFound:
+            Type: Fail
+            Error: "UserDoesNotExist"
+            Cause: "The provided user ID was not found in the database."
+
+    # Sync execution state machine to get response in same request
+    TicketFlowSync:
+      type: EXPRESS # Using EXPRESS for faster execution and better integration with API Gateway
+      loggingConfig:
+        level: ALL
+        includeExecutionData: true
+        destinations:
+          - Fn::GetAtt: [TicketFlowLogGroupCloudWatch, Arn]
+      events:
         - http:
             path: tickets/response
             method: post
-            action: StartSyncExecution
-            
-            # --- THIS SECTION WAS MISSING ---
+            action: StartSyncExecution #for sync execution to get response in same request
+
             request: 
               template:
                 application/json: |
                   #set( $body = $util.escapeJavaScript($input.json('$')) )
                   {
                     "input": "$body",
-                    "stateMachineArn": "arn:aws:states:${self:provider.region}:${aws:accountId}:stateMachine:TicketManagementFlow-${self:provider.stage}"
+                    "stateMachineArn": "arn:aws:states:${self:provider.region}:${aws:accountId}:stateMachine:TicketManagementFlow-Sync-${self:provider.stage}"
                   }
-            # --------------------------------
-            
+
+            # -------------Respose------------------- 
             response:
               headers:
                 Content-Type: "'application/json'"
@@ -107,7 +148,7 @@ stepFunctions:
                       "status": "$root.status"
                     }
                   #end
-      name: TicketManagementFlow-${self:provider.stage}
+      name: TicketManagementFlow-Sync-${self:provider.stage}
       definition:
         StartAt: CheckUserAvailability
         States:

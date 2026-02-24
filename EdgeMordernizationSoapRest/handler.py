@@ -35,14 +35,26 @@ def convert_xml_to_json(event, context):
 
 def check_user(event, context):
     """
-    Input event example: 
-    { "userId": "user_123", "ticketDetails": {...} }
+    Input event example from XML conversion: 
+    { "userId": "user_123", "ticketDetails": {...}, "requestType": "application/xml" }
+    
+    Input event example directly from API Gateway (JSON): 
+    { "requestType": "application/json", "input": "{\"userId\": \"user_123\", ...}" }
     """
     users_table = dynamodb.Table(os.environ['USERS_TABLE'])
     
-    user_id = event.get('userId')
+    # --- Extract data depending on whether it's wrapped in 'input' ---
+    if 'input' in event and isinstance(event['input'], str):
+        # The request came straight from API Gateway as JSON
+        parsed_input = json.loads(event['input'])
+        user_id = parsed_input.get('userId')
+        ticket_details = parsed_input.get('ticketDetails')
+    else:
+        # The request came from ConvertXmlToJson and is already flattened
+        user_id = event.get('userId')
+        ticket_details = event.get('ticketDetails')
+    # ----------------------------------------------------------------------
 
-    ticket_details = event.get('ticketDetails')
     print(f"Checking user: {user_id} with ticket details: {json.dumps(ticket_details)}")  # Debug log
     
     try:
@@ -57,7 +69,7 @@ def check_user(event, context):
                 'requestType': event.get("requestType")
             }
         else:
-            return {'userFound': False, 'requestType': event.get("requestType")}         
+            return {'userFound': False, 'requestType': event.get("requestType")}        
     except Exception as e:
         print(f"Error checking user: {e}")
         raise e

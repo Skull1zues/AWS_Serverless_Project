@@ -94,31 +94,26 @@ stepFunctions:
 
             # -------------Respose------------------- 
             response:
-            # Response mapping template to return the output from Step Functions execution back to API Gateway with appropriate content-type and status code
-              # headers:
-              #   Content-Type: "$input.path('$.outputHeaders.Content-Type')"
               template:
                 application/json: |
                   #set($root = $input.path('$'))
-                  ## Determine XML vs JSON based on requestType field
+                  
+                  ## 1. Default to XML
                   #set($wantsXml = true)
-                  #if($root.requestType && $root.requestType.toLowerCase() == "application/json")
-                  #set($wantsXml = false)
-                  #end
 
                   #if($root.status == 'SUCCEEDED')
-                  ## SUCCESS RESPONSE
-                    #if($wantsXml)
-                      #set($context.responseOverride.header.Content-Type = 'application/xml')
-                      $root.output
-                    #else
-                    #set($context.responseOverride.header.Content-Type = 'application/json')
-                      $root.output
+                    #set($parsedOutput = $util.parseJson($root.output))
+                    
+                    ## 2. Safely check the requestType (now preserved even on errors!)
+                    #set($extractedRequestType = "$!parsedOutput.requestType")
+                    #if($extractedRequestType != "" && $extractedRequestType.toLowerCase() == "application/json")
+                      #set($wantsXml = false)
                     #end
 
-                    #else
-                    ## ERROR RESPONSE
+                    ## 3. Check if it's our Custom Error Payload from the Pass state
+                    #if($parsedOutput.executionStatus == "FAILED")
                       #set($context.responseOverride.status = 500)
+                      
                       #if($wantsXml)
                         #set($context.responseOverride.header.Content-Type = 'application/xml')
                         <?xml version="1.0" encoding="utf-8"?>
@@ -126,41 +121,40 @@ stepFunctions:
                           <soapenv:Body>
                             <response>
                               <status>Failed</status>
-                              <error>$util.escapeJavaScript($root.error)</error>
-                              <cause>$util.escapeJavaScript($root.cause)</cause>
-                              <requestType>application/xml</requestType>
+                              <error>$util.escapeJavaScript($parsedOutput.error)</error>
+                              <cause>$util.escapeJavaScript($parsedOutput.cause)</cause>
                             </response>
                           </soapenv:Body>
                         </soapenv:Envelope>
                       #else
                         #set($context.responseOverride.header.Content-Type = 'application/json')
                         {
-                          "error": "$util.escapeJavaScript($root.error)",
-                          "cause": "$util.escapeJavaScript($root.cause)",
-                          "status": "$util.escapeJavaScript($root.status)"
+                          "error": "$util.escapeJavaScript($parsedOutput.error)",
+                          "cause": "$util.escapeJavaScript($parsedOutput.cause)",
+                          "status": "Failed"
                         }
+                      #end
+
+                    ## 4. Otherwise, it is a normal Success
+                    #else
+                      #if($wantsXml)
+                        #set($context.responseOverride.header.Content-Type = 'application/xml')
+                        $parsedOutput
+                      #else
+                        #set($context.responseOverride.header.Content-Type = 'application/json')
+                        $root.output
                       #end
                     #end
 
-                application/xml: |
-                  #set($root = $input.path('$'))
-                  #if($root.status == 'SUCCEEDED')
-                    #set($parsed = $util.parseJson($root.output))
-                    #if($parsed.output)
-                      #set($context.responseOverride.header.Content-Type = 'text/xml')
-                      $parsed.output
-                    #else
-                      #set($context.responseOverride.header.Content-Type = 'application/json')
-                      $root.output
-                    #end
                   #else
+                    ## 5. Handle unexpected hard crashes (e.g., IAM permission errors)
                     #set($context.responseOverride.status = 500)
-                    <error>
-                      <message>$root.error</message>
-                      <cause>$root.cause</cause>
-                      <status>$root.status</status>
-                    </error>
+                    {
+                      "error": "$util.escapeJavaScript($root.error)",
+                      "cause": "$util.escapeJavaScript($root.cause)"
+                    }
                   #end
+                
       name: TicketManagementFlow-RestSoap-${self:provider.stage}
       definition:
         StartAt: DetermineRequestType
@@ -220,19 +214,32 @@ stepFunctions:
             Type: Pass
             End: true
 
-
           UserNotFound:
-            Type: Fail
-            Error: "UserDoesNotExist"
-            Cause: "The provided user ID was not found in the database."
+            Type: Pass
+            Parameters:
+              executionStatus: "FAILED"
+              error: "UserDoesNotExist"
+              cause: "The provided user ID was not found in the database."
+              requestType.$: "$.requestType"
+            End: true
+            
           InvalidRequestType:
-            Type: Fail
-            Error: "InvalidRequestType"
-            Cause: "The request type must be either XML or JSON."
+            Type: Pass
+            Parameters:
+              executionStatus: "FAILED"
+              error: "InvalidRequestType"
+              cause: "The request type must be either XML or JSON."
+              requestType.$: "$.requestType"
+            End: true
+            
           TypeMismatchError:
-            Type: Fail
-            Error: "TypeMismatch"
-            Cause: "The request and response types do not match."
+            Type: Pass
+            Parameters:
+              executionStatus: "FAILED"
+              error: "TypeMismatch"
+              cause: "The request and response types do not match."
+              requestType.$: "$.requestType"
+            End: true
           
 resources:
   Resources:

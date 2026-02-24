@@ -66,3 +66,27 @@ This will start a local emulator of AWS Lambda and tunnel your requests to and f
 Now you can invoke the function as before, but this time the function will be executed locally. Now you can develop your function locally, invoke it, and see the results immediately without having to re-deploy.
 
 When you are done developing, don't forget to run `serverless deploy` to deploy the function to the cloud.
+
+Content-Type:application/xml
+
+<request>
+    <userId>user_123</userId>
+    <ticketDetails>
+        <ticketId>inc-test</ticketId>
+        <type>incident</type>
+        <price>499</price>
+    </ticketDetails>
+</request>
+
+
+Content-Type:application/json
+{
+  "userId": "user_123",
+   "ticketDetails": {
+     "ticketId": "inc-test",
+     "type": "incident",
+     "price": 499
+   }
+}
+
+s
